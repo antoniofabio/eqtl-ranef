@@ -8,11 +8,11 @@ suppressMessages({
 option_list <-
     list(
         make_option("--input", help = "input data file [default: stdin]", default = "-"),
-        make_option("--output", help = "output file [default: 'genespos.sqlite']", default = "genespos.sqlite")
+        make_option("--output", help = "output file [default: 'snpspos.sqlite']", default = "snpspos.sqlite")
         )
 
 parser <- OptionParser(usage = "%prog [options]",
-                       description = "import genes position data",
+                       description = "snps positions data",
                        option_list = option_list)
 opts <- parse_args(parser, positional_arguments = FALSE)
 
@@ -32,21 +32,20 @@ db <- dbConnect(dbDriver("SQLite"), opts$output)
 ##
 ## setup database schema
 ##
-ignore <- dbGetQuery(db, "CREATE TABLE genespos (
-  reporterID TEXT,
+ignore <- dbGetQuery(db, "CREATE TABLE snpspos (
+  SNPID TEXT,
   chromosome TEXT,
-  start REAL,
-  end REAL
+  position REAL
 )")
-ignore <- dbGetQuery(db, "CREATE INDEX reporterIndex on genespos(reporterID);")
+ignore <- dbGetQuery(db, "CREATE INDEX SNPIndex on snpspos(SNPID);")
 
 ## read full input data
 message("reading input data...")
 contents <- read.table(input,
                        header = FALSE,
                        sep = "\t",
-                       colClasses = c("character", "character", "numeric", "numeric"),
-                       col.names = c("reporterID", "chromosome", "start", "end"))
+                       colClasses = c("character", "character", "numeric"),
+                       col.names = c("SNPID", "chromosome", "position"))
 message("done:")
 sink(stderr())
 str(contents)
