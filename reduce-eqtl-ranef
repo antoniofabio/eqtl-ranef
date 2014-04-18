@@ -46,6 +46,10 @@ if(opts$cores > 1) suppressMessages({
   registerDoMC(cores = opts$cores)
 })
 
+db <- dbConnect(dbDriver("SQLite"), ":memory:")
+ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
+ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
+
 input <- file("stdin")
 
 genotype <- read.table(input,
@@ -128,14 +132,39 @@ fitter <- function(dat) {
 results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
 
 ##
-## TODO: tag as cis and trans
+## tag cis and trans
 ##
-results$relativePosition <- "trans"
+dbG <- function(...) invisible(dbGetQuery(db, sprintf(...)))
 
-results <- subset(results, relativePosition == "cis" | pvalue <= opts$`trans-pvalue`)
+ignore <- dbWriteTable(db, name = "results", value = results)
 
-write.table(results,
+out <- dbG('
+  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue
+  FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
+  WHERE gtpos.SNPID == rs.SNPID
+  AND gexpos.reporterID == rs.reporterID
+  AND
+   (
+    ((gtpos.chromosome == gexpos.chromosome)
+    AND
+    ((abs(gtpos.position - gexpos.start) <= %d)
+     OR (abs(gtpos.position - gexpos.end) <= %d)
+     OR (gtpos.position >= gexpos.start AND gtpos.position <= gexpos.end)))
+    OR
+     rs.pvalue <= %f
+   )
+', opts$`cis-window`, opts$`cis-window`, opts$`trans-pvalue`)
+
+sink(stderr())
+str(out)
+sink()
+
+write.table(out,
             row.names = FALSE,
             col.names = FALSE,
             sep = "\t",
             quote = FALSE)
+
+ignore <- dbDisconnect(db)
+
+message("analysis completed.")
