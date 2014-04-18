@@ -5,6 +5,7 @@ suppressMessages({
   library(reshape)
   library(plyr)
   library(RSQLite)
+  library(lme4)
 })
 
 option_list <-
@@ -55,24 +56,76 @@ genotype <- read.table(input,
                        colClasses = c("character", "character", "numeric"),
                        col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
 
-close(input)
+message("reading outcomes data...")
+outcomes <- read.table(opts$outcomes,
+                       sep = "\t",
+                       header = FALSE,
+                       quote = "",
+                       comment.char = "",
+                       colClasses = c("character", "character", "numeric"),
+                       col.names = c("reporterID", "sampleID", "expression"))
+message("done:")
+sink(stderr())
+str(outcomes)
+sink()
 
-dat <- merge(genotype, gex, by = "sampleID")
-dat <- merge(gt.gex, fixef, by = "sampleID")
-dat <- merge(dat, ranef, by = "sampleID")
+message("reading fixed effects data...")
+fixef <- read.table(opts$fixef,
+                    sep = "\t",
+                    header = FALSE,
+                    quote = "",
+                    comment.char = "",
+                    colClasses = c("character", NA_character_))
+names(fixef)[1] <- "sampleID"
+names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
+message("done:")
+sink(stderr())
+str(fixef)
+sink()
+
+message("reading random effects data...")
+ranef <- read.table(opts$ranef,
+                    sep = "\t",
+                    header = FALSE,
+                    quote = "",
+                    comment.char = "",
+                    colClasses = c("character", NA_character_))
+names(ranef)[1] <- "sampleID"
+names(ranef)[-1] <- paste0("R", seq_len(length(ranef) - 1))
+message("done:")
+sink(stderr())
+str(ranef)
+sink()
+
+##
+## build formula
+##
+formula.fixef <- paste(names(fixef)[-1], collapse = " + ")
+formula.ranef <- paste(sprintf("(1 | %s)", names(ranef)[-1]), collapse = " + ")
+formula.str <- sprintf("expression ~ alleleCopyNumber + %s + %s", formula.fixef, formula.ranef)
+formula <- as.formula(formula.str)
+message("model formula:")
+sink(stderr())
+print(formula)
+sink()
+
+covariates <- merge(fixef, ranef, by = "sampleID")
+data <- merge(genotype, outcomes, by = "sampleID")
+data <- merge(data, covariates, by = "sampleID")
 
 pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
 
 fitter <- function(dat) {
-  out <- coefficients(summary(lmer(expression ~ alleleCopyNumber + fixef + (1|ranef), data = dat)))["alleleCopyNumber",, drop = FALSE]
-  subset(data.frame(pvalue = 2 * pnorm(abs(out[, "t"]), lower.tail = FALSE),
+  out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
+  tValue <- out[, "t value"]
+  subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
                     beta = out[, "Estimate"],
-                    t = out[, "t"],
+                    t = tValue,
                     nobs = nrow(dat)),
          pvalue <= pvalue.max)
 }
 
-results <- ddply(dat, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
+results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
 
 ##
 ## TODO: tag as cis and trans
