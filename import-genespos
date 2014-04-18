@@ -1,0 +1,49 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(RSQLite)
+})
+
+option_list <-
+    list(
+        make_option("--input", help = "input data file [default: stdin]", default = "-"),
+        make_option("--output", help = "output file [default: 'genespos.sqlite']", default = "genespos.sqlite")
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "import genes position data",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+if(opts$input == "-") {
+  input <- file("stdin")
+} else {
+  input <- file(opts$input, open = "r", raw = TRUE)
+}
+
+if(file.exists(opts$output)) {
+  message("WARNING: removing already existing file ", shQuote(opts$output))
+  stopifnot(file.remove(opts$output))
+}
+
+##
+## TODO: setup database schema
+##
+
+## read full input data
+message("reading input data...")
+contents <- read.table(input,
+                       header = FALSE,
+                       sep = "\t",
+                       colClasses = c("character", "character", "numeric", "numeric"),
+                       col.names = c("reporterID", "chromosome", "start", "end"))
+message("done:")
+sink(stderr())
+str(contents)
+sink()
+
+## TODO: pour input data into the database
+dbWriteTable(db, "genespos", contents)
+
+message("completed.")
