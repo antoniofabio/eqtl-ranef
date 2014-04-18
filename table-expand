@@ -1,0 +1,3 @@
+#!/bin/bash
+
+join -j 2 -t '	' ranef.tab genotype.bySubject.thin | awk -v OFS="	" '{print $3,$2,$4}'
