@@ -51,7 +51,7 @@ sink(stderr())
 str(contents)
 sink()
 
-status <- dbWriteTable(db, name = "genespos", value = contents,
+status <- dbWriteTable(db, name = "snpspos", value = contents,
                        append = TRUE, row.names = FALSE)
 
 if(!status) {
