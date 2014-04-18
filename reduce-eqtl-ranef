@@ -1,0 +1,88 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(reshape)
+  library(plyr)
+  library(RSQLite)
+})
+
+option_list <-
+    list(
+        make_option("--outcomes", help = "outcomes data matrix file", default = NULL),
+        make_option("--fixef", help = "fixed effects terms", default = NULL),
+        make_option("--ranef", help = "random effects terms", default = NULL),
+        make_option("--genespos", help = "genes positions sqlite database", default = NULL),
+        make_option("--snpspos", help = "snps positions sqlite database",  default = NULL),
+        make_option("--cis-window", help = "cis window size [default: 5e5]", default = 5e5),
+        make_option("--trans-pvalue", help = "trans p-value threshold [default: 1E-5]", default = 1e-5),
+        make_option("--cis-pvalue", help = "cis p-value threshold [default: 0.1]", default = 0.1),
+        make_option("--cores", help = "numbers of cores to use [default: 1]", default = 1)
+        )
+
+parser <- OptionParser(usage = "%prog [options] < genotype.thin.dose",
+                       description = "random effects eqtls",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+##
+## check sanity of input options
+##
+with(opts, {
+  stopifnot(file.exists(outcomes))
+  stopifnot(file.exists(fixef))
+  stopifnot(file.exists(ranef))
+  stopifnot(file.exists(genespos))
+  stopifnot(file.exists(snpspos))
+  stopifnot(`cis-window` >= 0)
+  stopifnot(`cis-pvalue` >= 0)
+  stopifnot(`trans-pvalue` >= 0)
+  stopifnot(cores >= 1)
+})
+
+if(opts$cores > 1) suppressMessages({
+  library(doMC)
+  registerDoMC(cores = opts$cores)
+})
+
+input <- file("stdin")
+
+genotype <- read.table(input,
+                       sep = "\t",
+                       header = FALSE,
+                       quote = "",
+                       comment.char = "",
+                       colClasses = c("character", "character", "numeric"),
+                       col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
+
+close(input)
+
+dat <- merge(genotype, gex, by = "sampleID")
+dat <- merge(gt.gex, fixef, by = "sampleID")
+dat <- merge(dat, ranef, by = "sampleID")
+
+pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
+
+fitter <- function(dat) {
+  out <- coefficients(summary(lmer(expression ~ alleleCopyNumber + fixef + (1|ranef), data = dat)))["alleleCopyNumber",, drop = FALSE]
+  subset(data.frame(pvalue = 2 * pnorm(abs(out[, "t"]), lower.tail = FALSE),
+                    beta = out[, "Estimate"],
+                    t = out[, "t"],
+                    nobs = nrow(dat)),
+         pvalue <= pvalue.max)
+}
+
+results <- ddply(dat, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
+
+##
+## TODO: tag as cis and trans
+##
+results$relativePosition <- "trans"
+
+results <- subset(results, relativePosition == "cis" | pvalue <= opts$`trans-pvalue`)
+
+write.table(results,
+            row.names = FALSE,
+            col.names = FALSE,
+            sep = "\t",
+            quote = FALSE)
