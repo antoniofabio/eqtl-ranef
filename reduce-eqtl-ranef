@@ -10,6 +10,7 @@ suppressMessages({
 
 option_list <-
     list(
+        make_option("--regressors", help = "regressors data matrix file (use '-' for standard input)", default = "-"),
         make_option("--outcomes", help = "outcomes data matrix file", default = NULL),
         make_option("--fixef", help = "fixed effects terms", default = NULL),
         make_option("--ranef", help = "random effects terms", default = NULL),
@@ -30,6 +31,9 @@ opts <- parse_args(parser, positional_arguments = FALSE)
 ## check sanity of input options
 ##
 with(opts, {
+  if(regressors != "-") {
+    stopifnot(file.exists(regressors))
+  }
   stopifnot(file.exists(outcomes))
   stopifnot(file.exists(fixef))
   stopifnot(file.exists(ranef))
@@ -50,7 +54,11 @@ db <- dbConnect(dbDriver("SQLite"), ":memory:")
 ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
 
-input <- file("stdin")
+if(opts$regressors == "-") {
+  input <- file("stdin")
+} else {
+  input <- file(opts$regressors, open = "r", raw = TRUE)
+}
 
 genotype <- read.table(input,
                        sep = "\t",
