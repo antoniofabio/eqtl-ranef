@@ -121,9 +121,14 @@ sink(stderr())
 print(formula)
 sink()
 
+message("building main data matrix...")
 covariates <- merge(fixef, ranef, by = "sampleID")
 data <- merge(genotype, outcomes, by = "sampleID")
 data <- merge(data, covariates, by = "sampleID")
+message("done:")
+sink(stderr())
+str(data)
+sink()
 
 pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
 
@@ -137,11 +142,14 @@ fitter <- function(dat) {
          pvalue <= pvalue.max)
 }
 
+message("fitting models...")
 results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
+message("done.")
 
 ##
 ## tag cis and trans
 ##
+message("filtering results...")
 dbG <- function(...) invisible(dbGetQuery(db, sprintf(...)))
 
 ignore <- dbWriteTable(db, name = "results", value = results)
@@ -163,15 +171,18 @@ out <- dbG('
    )
 ', opts$`cis-window`, opts$`cis-window`, opts$`trans-pvalue`)
 
+message("done:")
 sink(stderr())
 str(out)
 sink()
 
+message("writing to standard output...")
 write.table(out,
             row.names = FALSE,
             col.names = FALSE,
             sep = "\t",
             quote = FALSE)
+message("done.")
 
 ignore <- dbDisconnect(db)
 
