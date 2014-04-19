@@ -18,8 +18,9 @@ observed:
 	@mkdir -p observed
 
 observed/%.stdout: | observed
-	@echo running test $*
-	@./test-$*.sh > $@ 2> observed/$*.stderr
+	@echo -n "running test $*:	"
+	@/usr/bin/time -v -o observed/$*.time ./test-$*.sh > $@ 2> observed/$*.stderr
+	@echo "OK"
 
 diffs:
 	@mkdir -p diffs
@@ -28,5 +29,5 @@ diffs/%: expected/%.stdout observed/%.stdout | diffs
 	@diff $^ > $@
 
 report-%: diffs/%
-	@echo -n $*":	"
+	@echo -n "checking $* output:	"
 	@if [[ `wc -l < $<` -eq 0 ]] ; then echo "OK" ; else echo "FAIL" ; fi
