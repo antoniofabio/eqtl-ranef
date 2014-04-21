@@ -96,6 +96,9 @@ print(head(snpspos))
 ## write generated data on disk
 ##
 
+if(file.exists(opts$output)) {
+  stopifnot(unlink(outs$output, recursive = TRUE) == 0)
+}
 dir.create(opts$output, recursive = TRUE)
 dumpTable <- function(value, fileName) {
   write.table(value,
