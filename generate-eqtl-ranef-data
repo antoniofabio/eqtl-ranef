@@ -1,11 +1,14 @@
 #!/usr/bin/env Rscript
 
 suppressMessages({
+  library(RSQLite)
   library(methods)
   library(optparse)
   library(reshape)
   library(plyr)
 })
+
+options(warn = 1)
 
 option_list <-
     list(
@@ -47,12 +50,8 @@ F <- with(opts, matrix(runif(fixef * samples),
                            paste0("F", seq_len(fixef)))))
 F <- data.frame(sampleID = rownames(F), F)
 
-R <- with(opts, as.data.frame(matrix(runif(ranef * samples),
-                                     nrow = samples,
-                                     ncol = ranef,
-                                     dimnames = list(sampleID = samplesIDs,
-                                         paste0("R", seq_len(ranef))))))
-R <- data.frame(sampleID = rownames(R), R)
+R <- data.frame(sampleID = samplesIDs,
+                R1 = gl(n = 2, k = 1, length = length(samplesIDs)))
 
 Y <- with(opts, matrix(rnorm(outcomes * samples),
                        nrow = outcomes,
@@ -74,9 +73,30 @@ sink(stderr())
 ls.str()
 sink()
 
-## TODO:
+##
 ## generate annotation data
-## stop("TODO: generate annotation data")
+##
+chromosomeLength <- max(2 * length(outcomesIDs), length(regressorsIDs))
+message("chromosomeLength = ", chromosomeLength)
+
+genesStart <- floor(chromosomeLength * seq(0, 1, length = length(outcomesIDs))) + 1
+
+genespos <-
+    data.frame(reporterID = outcomesIDs,
+               chromosome = "1",
+               start = genesStart,
+               end = genesStart + 1)
+print(head(genespos))
+
+snpspos <-
+    data.frame(SNPID = regressorsIDs,
+               chromosome = "1",
+               position = floor(chromosomeLength * seq(0, 1, length = length(regressorsIDs))) + 1)
+print(head(snpspos))
+
+##
+## write generated data on disk
+##
 
 dir.create(opts$output, recursive = TRUE)
 dumpTable <- function(value, fileName) {
@@ -89,3 +109,13 @@ dumpTable(F, "fixef")
 dumpTable(R, "ranef")
 dumpTable(Y, "outcomes")
 dumpTable(X, "regressors")
+
+db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "genespos.sqlite"))
+stopifnot(dbWriteTable(db, "genespos", genespos))
+stopifnot(dbDisconnect(db))
+
+db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "snpspos.sqlite"))
+stopifnot(dbWriteTable(db, "snpspos", snpspos))
+stopifnot(dbDisconnect(db))
+
+message("analysis completed.")
