@@ -1,0 +1,121 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(RSQLite)
+  library(methods)
+  library(optparse)
+  library(reshape)
+  library(plyr)
+})
+
+options(warn = 1)
+
+option_list <-
+    list(
+        make_option("--regressors", help = "# regressors [default: 2]", default = 2),
+        make_option("--outcomes", help = "# outcomes [default: 2] ", default = 2),
+        make_option("--samples", help = "# samples [default: 10] ", default = 10),
+        make_option("--fixef", help = "# fixed effects terms [default: 1]", default = 1),
+        make_option("--ranef", help = "# random effects terms [default: 1]", default = 1),
+        make_option("--output", help = "output folder name [default: 'output']", default = "output"),
+        make_option("--seed", help = "RNG seed [default: 1234]", default = 1234)
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "generate random effects eqtls data",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+##
+## check sanity of input options
+##
+with(opts, {
+  stopifnot(regressors > 0)
+  stopifnot(outcomes > 0)
+  stopifnot(samples > 0)
+  stopifnot(fixef > 0)
+  stopifnot(ranef > 0)
+})
+
+set.seed(opts$seed)
+
+outcomesIDs <- paste0("outcome", seq_len(opts$outcomes))
+regressorsIDs <- paste0("regressor", seq_len(opts$regressors))
+samplesIDs <- paste0("sample", seq_len(opts$samples))
+
+F <- with(opts, matrix(runif(fixef * samples),
+                       nrow = samples,
+                       ncol = fixef,
+                       dimnames = list(sampleID = samplesIDs,
+                           paste0("F", seq_len(fixef)))))
+F <- data.frame(sampleID = rownames(F), F)
+
+R <- data.frame(sampleID = samplesIDs,
+                R1 = gl(n = 2, k = 1, length = length(samplesIDs)))
+
+Y <- with(opts, matrix(rnorm(outcomes * samples),
+                       nrow = outcomes,
+                       ncol = samples,
+                       dimnames = list(outcomeID = outcomesIDs,
+                           sampleID = samplesIDs)))
+Y <- melt(Y)
+Y <- Y[with(Y, order(outcomeID, sampleID)), ]
+
+X <- with(opts, matrix(runif(regressors * samples),
+                       nrow = regressors,
+                       ncol = samples,
+                       dimnames = list(regressorID = regressorsIDs,
+                           sampleID = samplesIDs)))
+X <- melt(X)
+X <- X[with(X, order(regressorID, sampleID)), ]
+
+sink(stderr())
+ls.str()
+sink()
+
+##
+## generate annotation data
+##
+chromosomeLength <- max(2 * length(outcomesIDs), length(regressorsIDs))
+message("chromosomeLength = ", chromosomeLength)
+
+genesStart <- floor(chromosomeLength * seq(0, 1, length = length(outcomesIDs))) + 1
+
+genespos <-
+    data.frame(reporterID = outcomesIDs,
+               chromosome = "1",
+               start = genesStart,
+               end = genesStart + 1)
+print(head(genespos))
+
+snpspos <-
+    data.frame(SNPID = regressorsIDs,
+               chromosome = "1",
+               position = floor(chromosomeLength * seq(0, 1, length = length(regressorsIDs))) + 1)
+print(head(snpspos))
+
+##
+## write generated data on disk
+##
+
+dir.create(opts$output, recursive = TRUE)
+dumpTable <- function(value, fileName) {
+  write.table(value,
+              file = file.path(opts$output, fileName),
+              row.names = FALSE, col.names = FALSE, sep = "\t", quote = FALSE)
+}
+
+dumpTable(F, "fixef")
+dumpTable(R, "ranef")
+dumpTable(Y, "outcomes")
+dumpTable(X, "regressors")
+
+db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "genespos.sqlite"))
+stopifnot(dbWriteTable(db, "genespos", genespos))
+stopifnot(dbDisconnect(db))
+
+db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "snpspos.sqlite"))
+stopifnot(dbWriteTable(db, "snpspos", snpspos))
+stopifnot(dbDisconnect(db))
+
+message("analysis completed.")
