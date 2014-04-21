@@ -16,7 +16,6 @@ option_list <-
         make_option("--outcomes", help = "# outcomes [default: 2] ", default = 2),
         make_option("--samples", help = "# samples [default: 10] ", default = 10),
         make_option("--fixef", help = "# fixed effects terms [default: 1]", default = 1),
-        make_option("--ranef", help = "# random effects terms [default: 1]", default = 1),
         make_option("--output", help = "output folder name [default: 'output']", default = "output"),
         make_option("--seed", help = "RNG seed [default: 1234]", default = 1234)
         )
@@ -34,7 +33,6 @@ with(opts, {
   stopifnot(outcomes > 0)
   stopifnot(samples > 0)
   stopifnot(fixef > 0)
-  stopifnot(ranef > 0)
 })
 
 set.seed(opts$seed)
