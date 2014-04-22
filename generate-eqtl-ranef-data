@@ -113,10 +113,12 @@ dumpTable(X, "regressors")
 
 db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "genespos.sqlite"))
 stopifnot(dbWriteTable(db, "genespos", genespos))
+ignore <- dbGetQuery(db, "CREATE INDEX reporterIndex on genespos(reporterID)")
 stopifnot(dbDisconnect(db))
 
 db <- dbConnect(dbDriver("SQLite"), file.path(opts$output, "snpspos.sqlite"))
 stopifnot(dbWriteTable(db, "snpspos", snpspos))
+ignore <- dbGetQuery(db, "CREATE INDEX SNPIndex on snpspos(SNPID)")
 stopifnot(dbDisconnect(db))
 
 message("analysis completed.")
