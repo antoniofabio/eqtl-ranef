@@ -187,6 +187,10 @@ message("fitting models...")
 results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
 message("done.")
 
+if(nrow(results) == 0) {
+  next
+}
+
 ##
 ## tag cis and trans
 ##
