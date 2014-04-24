@@ -16,4 +16,5 @@ trap "rm -rf ${TMPD}" EXIT
   --ranef=${TMPD}/ranef \
   --genespos=${TMPD}/genespos.sqlite \
   --snpspos=${TMPD}/snpspos.sqlite \
-  --cis-pvalue=0.1 --trans-pvalue=1e-3
+  --cis-pvalue=0.1 --trans-pvalue=1e-3 \
+    | sort

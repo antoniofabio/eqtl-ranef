@@ -13,7 +13,7 @@ opts : List of 7
  $ outcomes  : num 1000
  $ samples   : num 100
  $ fixef     : num 1
- $ output    : chr "/tmp/tmp.6aCJR42TNL"
+ $ output    : chr "/tmp/tmp.Al0JSOD7yP"
  $ seed      : num 1234
  $ help      : logi FALSE
 outcomesIDs :  chr [1:1000] "outcome1" "outcome2" "outcome3" "outcome4" ...
