@@ -155,6 +155,21 @@ cisCondition <- sprintf("((gtpos.chromosome == gexpos.chromosome)
      OR (gtpos.position >= gexpos.start AND gtpos.position <= gexpos.end)))
 ", opts$`cis-window`, opts$`cis-window`)
 
+filteringQuery <- sprintf('
+  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue, rs.beta as beta, rs.t as t, rs.nobs as nobs,
+         CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
+  FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
+  WHERE gtpos.SNPID == rs.SNPID
+  AND gexpos.reporterID == rs.reporterID
+  AND
+   (
+    %s
+    OR
+     rs.pvalue <= %f
+   )
+', cisCondition, cisCondition, opts$`trans-pvalue`)
+
+
 repeat {
 
 genotype <- readRegressor(input)
@@ -195,23 +210,10 @@ if(nrow(results) == 0) {
 ## tag cis and trans
 ##
 message("filtering results...")
-dbG <- function(...) invisible(dbGetQuery(db, sprintf(...)))
 
 ignore <- dbWriteTable(db, name = "results", value = results)
 
-out <- dbG('
-  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue, rs.beta as beta, rs.t as t, rs.nobs as nobs,
-         CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
-  FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
-  WHERE gtpos.SNPID == rs.SNPID
-  AND gexpos.reporterID == rs.reporterID
-  AND
-   (
-    %s
-    OR
-     rs.pvalue <= %f
-   )
-', cisCondition, cisCondition, opts$`trans-pvalue`)
+out <- dbGetQuery(db, filteringQuery)
 
 ignore <- dbRemoveTable(db, "results")
 
