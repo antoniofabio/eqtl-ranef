@@ -113,13 +113,44 @@ sink(stderr())
 print(formula)
 sink()
 
-genotype <- read.table(input,
-                       sep = "\t",
-                       header = FALSE,
-                       quote = "",
-                       comment.char = "",
-                       colClasses = c("character", "character", "numeric"),
-                       col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
+CHUNK_SIZE <- 1000L
+readRegressor <- function(con) {
+  ans <- data.frame(SNPID = character(0), sampleID = character(0), alleleCopyNumber = numeric(0),
+                    stringsAsFactors = FALSE)
+
+  repeat {
+    txt <- readLines(con, CHUNK_SIZE, warn = FALSE)
+    if(length(txt) == 0) {
+      break
+    }
+
+    txtCon <- textConnection(txt)
+    chunk <- read.table(txtCon,
+                        sep = "\t",
+                        header = FALSE,
+                        quote = "",
+                        comment.char = "",
+                        colClasses = c("character", "character", "numeric"),
+                        col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
+    lastSeenSNP <- tail(chunk$SNPID, 1)
+    if(chunk$SNPID[1] != lastSeenSNP) {
+      keep.flag <- with(chunk, SNPID != lastSeenSNP)
+      ans <- rbind(ans, subset(chunk, keep.flag))
+      pushBack(txt[!keep.flag], con)
+      break
+    }
+    ans <- rbind(ans, chunk)
+  }
+
+  return(ans)
+}
+
+repeat {
+
+genotype <- readRegressor(input)
+if(nrow(genotype) == 0) {
+  break
+}
 
 message("building main data matrix...")
 covariates <- merge(fixef, ranef, by = "sampleID")
@@ -185,6 +216,8 @@ write.table(out,
             sep = "\t",
             quote = FALSE)
 message("done.")
+
+} ## END REPEAT BLOCK
 
 ignore <- dbDisconnect(db)
 
