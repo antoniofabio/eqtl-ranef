@@ -145,6 +145,16 @@ readRegressor <- function(con) {
   return(ans)
 }
 
+##
+## SQL BOOLEAN CONDITION FOR 'CIS' EFFECTS
+##
+cisCondition <- sprintf("((gtpos.chromosome == gexpos.chromosome)
+    AND
+    ((abs(gtpos.position - gexpos.start) <= %d)
+     OR (abs(gtpos.position - gexpos.end) <= %d)
+     OR (gtpos.position >= gexpos.start AND gtpos.position <= gexpos.end)))
+", opts$`cis-window`, opts$`cis-window`)
+
 repeat {
 
 genotype <- readRegressor(input)
@@ -186,21 +196,18 @@ dbG <- function(...) invisible(dbGetQuery(db, sprintf(...)))
 ignore <- dbWriteTable(db, name = "results", value = results)
 
 out <- dbG('
-  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue
+  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue, rs.beta as beta, rs.t as t, rs.nobs as nobs,
+         CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
   FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
   WHERE gtpos.SNPID == rs.SNPID
   AND gexpos.reporterID == rs.reporterID
   AND
    (
-    ((gtpos.chromosome == gexpos.chromosome)
-    AND
-    ((abs(gtpos.position - gexpos.start) <= %d)
-     OR (abs(gtpos.position - gexpos.end) <= %d)
-     OR (gtpos.position >= gexpos.start AND gtpos.position <= gexpos.end)))
+    %s
     OR
      rs.pvalue <= %f
    )
-', opts$`cis-window`, opts$`cis-window`, opts$`trans-pvalue`)
+', cisCondition, cisCondition, opts$`trans-pvalue`)
 
 ignore <- dbRemoveTable(db, "results")
 
