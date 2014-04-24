@@ -175,8 +175,6 @@ filteringQuery <- sprintf('
 ## MAIN LOOP
 ##
 
-message("\n=> main loop started on ", date(), "\n")
-
 TIME_INTERVAL <- as.difftime(15, units = "mins")
 ORIG_TIME <- START_TIME <- Sys.time()
 SNPs_COUNTER <- 0
@@ -198,6 +196,8 @@ printTimingInfo <- function() {
   message(" writing output: ", format(WRITING_TIME))
   message(" garbage collection: ", format(GC_TIME))
 }
+
+message("\n=> main loop started on ", date(), "\n")
 
 repeat {
 
@@ -289,6 +289,8 @@ if(ELAPSED > TIME_INTERVAL) {
 }
 
 } ## END REPEAT BLOCK
+
+message("\n=> main loop completed on ", date(), "\n")
 
 CUR_TIME <- Sys.time()
 printTimingInfo()
