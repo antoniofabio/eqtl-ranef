@@ -1,4 +1,4 @@
-TESTS:=000
+TESTS:=000 001
 
 TARGETS:=$(TESTS:%=observed/%.stdout) $(TESTS:%=diffs/%) \
   $(TESTS:%=report-%)
