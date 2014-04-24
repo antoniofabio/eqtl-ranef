@@ -10,7 +10,7 @@ suppressMessages({
 
 option_list <-
     list(
-        make_option("--regressors", help = "regressors data matrix file (use '-' for standard input)", default = "-"),
+        make_option("--regressors", help = "regressors data matrix file (use '-' for standard input)", default = NULL),
         make_option("--outcomes", help = "outcomes data matrix file", default = NULL),
         make_option("--fixef", help = "fixed effects terms", default = NULL),
         make_option("--ranef", help = "random effects terms", default = NULL),
