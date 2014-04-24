@@ -97,7 +97,7 @@ print(head(snpspos))
 ##
 
 if(file.exists(opts$output)) {
-  stopifnot(unlink(outs$output, recursive = TRUE) == 0)
+  stopifnot(unlink(opts$output, recursive = TRUE) == 0)
 }
 dir.create(opts$output, recursive = TRUE)
 dumpTable <- function(value, fileName) {
