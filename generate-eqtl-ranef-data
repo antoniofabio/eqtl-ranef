@@ -84,13 +84,17 @@ genespos <-
                chromosome = "1",
                start = genesStart,
                end = genesStart + 1)
+sink(stderr())
 print(head(genespos))
+sink()
 
 snpspos <-
     data.frame(SNPID = regressorsIDs,
                chromosome = "1",
                position = floor(chromosomeLength * seq(0, 1, length = length(regressorsIDs))) + 1)
+sink(stderr())
 print(head(snpspos))
+sink()
 
 ##
 ## write generated data on disk
