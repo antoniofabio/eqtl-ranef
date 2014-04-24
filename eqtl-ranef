@@ -60,14 +60,6 @@ if(opts$regressors == "-") {
   input <- file(opts$regressors, open = "r", raw = TRUE)
 }
 
-genotype <- read.table(input,
-                       sep = "\t",
-                       header = FALSE,
-                       quote = "",
-                       comment.char = "",
-                       colClasses = c("character", "character", "numeric"),
-                       col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
-
 message("reading outcomes data...")
 outcomes <- read.table(opts$outcomes,
                        sep = "\t",
@@ -121,6 +113,14 @@ sink(stderr())
 print(formula)
 sink()
 
+genotype <- read.table(input,
+                       sep = "\t",
+                       header = FALSE,
+                       quote = "",
+                       comment.char = "",
+                       colClasses = c("character", "character", "numeric"),
+                       col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
+
 message("building main data matrix...")
 covariates <- merge(fixef, ranef, by = "sampleID")
 data <- merge(genotype, outcomes, by = "sampleID")
@@ -170,6 +170,8 @@ out <- dbG('
      rs.pvalue <= %f
    )
 ', opts$`cis-window`, opts$`cis-window`, opts$`trans-pvalue`)
+
+dbRemoveTable(db, "results")
 
 message("done:")
 sink(stderr())
