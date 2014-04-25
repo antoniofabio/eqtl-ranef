@@ -61,13 +61,15 @@ if(opts$regressors == "-") {
 }
 
 message("reading outcomes data...")
-outcomes <- read.table(opts$outcomes,
+outcomes.con <- file(opts$outcomes, open = "r", raw = TRUE)
+outcomes <- read.table(file = outcomes.con,
                        sep = "\t",
                        header = FALSE,
                        quote = "",
                        comment.char = "",
                        colClasses = c("character", "character", "numeric"),
                        col.names = c("reporterID", "sampleID", "expression"))
+close(outcomes.con)
 message("done:")
 sink(stderr())
 str(outcomes)
