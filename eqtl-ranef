@@ -273,9 +273,7 @@ if(nrow(genotype) == 0) {
 numRegressors <- length(unique(genotype$SNPID))
 SNPs_COUNTER <- SNPs_COUNTER + numRegressors
 
-outcomesBreaks <-
-    splitItemsInto(outcomes.sizes,
-                   numPerPiece = length(outcomes.sizes) * numRegressors / opts$`max-regressions`)
+outcomesBreaks <- splitItemsInto(outcomes.sizes, numPerPiece = opts$`max-regressions` / numRegressors )
 
 outcomesRowCounter <- 0
 
