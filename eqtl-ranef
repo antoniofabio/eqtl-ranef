@@ -50,6 +50,10 @@ if(opts$cores > 1) suppressMessages({
   registerDoMC(cores = opts$cores)
 })
 
+sink(stderr())
+str(opts)
+sink()
+
 db <- dbConnect(dbDriver("SQLite"), ":memory:")
 ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
