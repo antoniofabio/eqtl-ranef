@@ -20,7 +20,8 @@ option_list <-
         make_option("--trans-pvalue", help = "trans p-value threshold [default: 1E-5]", default = 1e-5),
         make_option("--cis-pvalue", help = "cis p-value threshold [default: 0.1]", default = 0.1),
         make_option("--cores", help = "numbers of cores to use [default: 1]", default = 1),
-        make_option("--max-regressions", help = "max number of regressions data to keep in memory at once [default: 10000]", default = 10000L)
+        make_option("--max-regressions", help = "max number of regressions data to keep in memory at once [default: 10000]", default = 10000L),
+        make_option("--regressors-chunk-size", help = "regressors reading chunk size [default: 1000]", default = 1000L)
         )
 
 parser <- OptionParser(usage = "%prog [options] < genotype.thin.dose",
@@ -170,12 +171,14 @@ sink(stderr())
 print(formula)
 sink()
 
-CHUNK_SIZE <- 1000L
+CHUNK_SIZE <- opts$`regressors-chunk-size`
 readRegressor <- function(con) {
+
   ans <- data.frame(SNPID = character(0), sampleID = character(0), alleleCopyNumber = numeric(0),
                     stringsAsFactors = FALSE)
 
   repeat {
+
     txt <- readLines(con, CHUNK_SIZE, warn = FALSE)
     if(length(txt) == 0) {
       break
@@ -189,14 +192,33 @@ readRegressor <- function(con) {
                         comment.char = "",
                         colClasses = c("character", "character", "numeric"),
                         col.names = c("SNPID", "sampleID", "alleleCopyNumber"))
-    lastSeenSNP <- tail(chunk$SNPID, 1)
-    if(chunk$SNPID[1] != lastSeenSNP) {
-      keep.flag <- with(chunk, SNPID != lastSeenSNP)
+
+    if(nrow(ans) == 0) {
+      ans <- chunk
+      firstSNP <- head(ans$SNPID, 1)
+
+      if(head(ans$SNPID, 1) == tail(ans$SNPID, 1)) {
+        ## we're not done with this SNP: keep reading
+        next
+      }
+
+      lastSNP <- tail(ans$SNPID, 1)
+      keep.flag <- with(ans, SNPID != lastSNP)
+      ans <- ans[keep.flag, ]
+      pushBack(txt[!keep.flag], con)
+      break
+    }
+
+    lastSNP <- tail(chunk$SNPID, 1)
+    if(lastSNP != firstSNP) {
+      keep.flag <- with(chunk, SNPID != lastSNP)
       ans <- rbind(ans, subset(chunk, keep.flag))
       pushBack(txt[!keep.flag], con)
       break
     }
+
     ans <- rbind(ans, chunk)
+
   }
 
   return(ans)
