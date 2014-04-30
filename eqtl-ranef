@@ -19,7 +19,8 @@ option_list <-
         make_option("--cis-window", help = "cis window size [default: 5e5]", default = 5e5),
         make_option("--trans-pvalue", help = "trans p-value threshold [default: 1E-5]", default = 1e-5),
         make_option("--cis-pvalue", help = "cis p-value threshold [default: 0.1]", default = 0.1),
-        make_option("--cores", help = "numbers of cores to use [default: 1]", default = 1)
+        make_option("--cores", help = "numbers of cores to use [default: 1]", default = 1),
+        make_option("--max-regressions", help = "max number of regressions data to keep in memory at once [default: 10000]", default = 10000L)
         )
 
 parser <- OptionParser(usage = "%prog [options] < genotype.thin.dose",
@@ -118,6 +119,40 @@ outcomes.c <- merge(outcomes, covariates, by = "sampleID")
 sink(stderr())
 str(outcomes.c)
 sink()
+
+##
+## MODEL FITTING FUNCTION
+##
+fitter <- function(dat) {
+  out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
+  tValue <- out[, "t value"]
+  subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                    beta = out[, "Estimate"],
+                    t = tValue,
+                    nobs = nrow(dat)),
+         pvalue <= pvalue.max)
+}
+
+allOutcomes <- unique(outcomes.c$reporterID)
+
+splitItemsInto <- function(items, numPerPiece) {
+
+  numItems <- length(items)
+  numPerPiece <- max(ceiling(numPerPiece), 1)
+  numPieces <- ceiling(numItems / numPerPiece)
+
+  fuzz <- min((numItems - 1L) / 1000, 0.4 * numItems / numPieces)
+  breaks <- seq(1 - fuzz, numItems + fuzz, length = numPieces + 1L)
+  breaks <- breaks[-1]
+  breaks[length(breaks)] <- numItems
+
+  breaks <- floor(breaks)
+  spans <- c(breaks[1], diff(breaks))
+  f <- rep(seq_along(spans), spans)
+
+  return(split(items, f))
+
+}
 
 ##
 ## build formula
@@ -231,78 +266,68 @@ if(nrow(genotype) == 0) {
   break
 }
 
-SNPs_COUNTER <- SNPs_COUNTER + length(unique(genotype$SNPID))
+numRegressors <- length(unique(genotype$SNPID))
+SNPs_COUNTER <- SNPs_COUNTER + numRegressors
 
-## message("building main data matrix...")
-data <- merge(genotype, outcomes.c, by = "sampleID")
-## message("done:")
-## sink(stderr())
-## str(data)
-## sink()
+buckets <-
+    splitItemsInto(items = allOutcomes,
+                   numPerPiece = length(allOutcomes) * numRegressors / opts$`max-regressions`)
 
-JOINING_TICK <- Sys.time()
-JOINING_TIME <- JOINING_TIME + (JOINING_TICK - READING_TICK)
+for(bucket in buckets) {
 
-fitter <- function(dat) {
-  out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
-  tValue <- out[, "t value"]
-  subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
-                    beta = out[, "Estimate"],
-                    t = tValue,
-                    nobs = nrow(dat)),
-         pvalue <= pvalue.max)
-}
+  BUCKING_TICK <- Sys.time()
 
-## message("fitting models...")
-results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
-## message("done.")
+  data <- merge(genotype,
+                subset(outcomes.c, reporterID %in% bucket),
+                by = "sampleID")
 
-PROCESSING_TICK <- Sys.time()
-PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
+  JOINING_TICK <- Sys.time()
+  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
 
-if(nrow(results) == 0) {
-  next
-}
+  results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
 
-##
-## tag cis and trans
-##
-## message("filtering results...")
+  PROCESSING_TICK <- Sys.time()
+  PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
 
-ignore <- dbWriteTable(db, name = "results", value = results)
-out <- dbGetQuery(db, filteringQuery)
-ignore <- dbRemoveTable(db, "results")
+  if(nrow(results) == 0) {
+    next
+  }
 
-FILTERING_TICK <- Sys.time()
-FILTERING_TIME <- FILTERING_TIME + (FILTERING_TICK - PROCESSING_TICK)
+  ##
+  ## tag cis and trans
+  ##
 
-## message("done:")
-## sink(stderr())
-## str(out)
-## sink()
+  ignore <- dbWriteTable(db, name = "results", value = results)
+  out <- dbGetQuery(db, filteringQuery)
+  ignore <- dbRemoveTable(db, "results")
 
-## message("writing to standard output...")
-write.table(out,
-            row.names = FALSE,
-            col.names = FALSE,
-            sep = "\t",
-            quote = FALSE)
-## message("done.")
+  FILTERING_TICK <- Sys.time()
+  FILTERING_TIME <- FILTERING_TIME + (FILTERING_TICK - PROCESSING_TICK)
 
-WRITING_TICK <- Sys.time()
-WRITING_TIME <- WRITING_TIME + (WRITING_TICK - FILTERING_TICK)
+  ## message("writing to standard output...")
+  write.table(out,
+              row.names = FALSE,
+              col.names = FALSE,
+              sep = "\t",
+              quote = FALSE)
+  ## message("done.")
 
-ignore <- gc()
+  WRITING_TICK <- Sys.time()
+  WRITING_TIME <- WRITING_TIME + (WRITING_TICK - FILTERING_TICK)
 
-GC_TICK <- Sys.time()
-GC_TIME <- GC_TIME + (GC_TICK - WRITING_TICK)
+  ignore <- gc()
 
-CUR_TIME <- Sys.time()
-ELAPSED <- CUR_TIME - START_TIME
-if(ELAPSED > TIME_INTERVAL) {
-  START_TIME <- CUR_TIME
-  printTimingInfo()
-}
+  GC_TICK <- Sys.time()
+  GC_TIME <- GC_TIME + (GC_TICK - WRITING_TICK)
+
+  CUR_TIME <- Sys.time()
+  ELAPSED <- CUR_TIME - START_TIME
+  if(ELAPSED > TIME_INTERVAL) {
+    START_TIME <- CUR_TIME
+    printTimingInfo()
+  }
+
+} ## END GOING THROUGH BUCKETS OF OUTCOMES
 
 } ## END REPEAT BLOCK
 
