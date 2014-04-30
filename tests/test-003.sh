@@ -17,5 +17,5 @@ trap "rm -rf ${TMPD}" EXIT
   --genespos=${TMPD}/genespos.sqlite \
   --snpspos=${TMPD}/snpspos.sqlite \
   --cis-pvalue=0.1 --trans-pvalue=1e-3 \
-  --max-regressions=20 \
+  --max-regressions=500 \
     | sort
