@@ -109,6 +109,12 @@ sink(stderr())
 str(covariates)
 sink()
 
+message("merging outcomes data...")
+outcomes.c <- merge(outcomes, covariates, by = "sampleID")
+sink(stderr())
+str(outcomes.c)
+sink()
+
 ##
 ## build formula
 ##
@@ -224,8 +230,7 @@ if(nrow(genotype) == 0) {
 SNPs_COUNTER <- SNPs_COUNTER + length(unique(genotype$SNPID))
 
 ## message("building main data matrix...")
-data <- merge(genotype, outcomes, by = "sampleID")
-data <- merge(data, covariates, by = "sampleID")
+data <- merge(genotype, outcomes.c, by = "sampleID")
 ## message("done:")
 ## sink(stderr())
 ## str(data)
