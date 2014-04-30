@@ -116,6 +116,7 @@ sink()
 
 message("merging outcomes data...")
 outcomes.c <- merge(outcomes, covariates, by = "sampleID")
+outcomes.c <- outcomes.c[order(outcomes.c$reporterID), ]
 sink(stderr())
 str(outcomes.c)
 sink()
@@ -133,11 +134,11 @@ fitter <- function(dat) {
          pvalue <= pvalue.max)
 }
 
-allOutcomes <- unique(outcomes.c$reporterID)
+outcomes.sizes <- table(outcomes.c$reporterID)
 
-splitItemsInto <- function(items, numPerPiece) {
+splitItemsInto <- function(items.sizes, numPerPiece) {
 
-  numItems <- length(items)
+  numItems <- length(items.sizes)
   numPerPiece <- max(ceiling(numPerPiece), 1)
   numPieces <- ceiling(numItems / numPerPiece)
 
@@ -150,7 +151,10 @@ splitItemsInto <- function(items, numPerPiece) {
   spans <- c(breaks[1], diff(breaks))
   f <- rep(seq_along(spans), spans)
 
-  return(split(items, f))
+  spans.expanded <- tapply(items.sizes, f, sum)
+  breaks.expanded <- cumsum(spans.expanded)
+
+  return(breaks.expanded)
 
 }
 
@@ -269,17 +273,20 @@ if(nrow(genotype) == 0) {
 numRegressors <- length(unique(genotype$SNPID))
 SNPs_COUNTER <- SNPs_COUNTER + numRegressors
 
-buckets <-
-    splitItemsInto(items = allOutcomes,
-                   numPerPiece = length(allOutcomes) * numRegressors / opts$`max-regressions`)
+outcomesBreaks <-
+    splitItemsInto(outcomes.sizes,
+                   numPerPiece = length(outcomes.sizes) * numRegressors / opts$`max-regressions`)
 
-for(bucket in buckets) {
+outcomesRowCounter <- 0
+
+for(outcomesBreak in outcomesBreaks) {
 
   BUCKING_TICK <- Sys.time()
 
   data <- merge(genotype,
-                subset(outcomes.c, reporterID %in% bucket),
+                outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ],
                 by = "sampleID")
+  outcomesRowCounter <- outcomesBreak
 
   JOINING_TICK <- Sys.time()
   JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
