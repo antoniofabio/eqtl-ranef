@@ -126,13 +126,17 @@ sink()
 ## MODEL FITTING FUNCTION
 ##
 fitter <- function(dat) {
-  out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
-  tValue <- out[, "t value"]
-  subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
-                    beta = out[, "Estimate"],
-                    t = tValue,
-                    nobs = nrow(dat)),
-         pvalue <= pvalue.max)
+  tryCatch({
+    out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
+    tValue <- out[, "t value"]
+    subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                      beta = out[, "Estimate"],
+                      t = tValue,
+                      nobs = nrow(dat)),
+           pvalue <= pvalue.max)
+  }, error = function(e) {
+    return(NULL)
+  })
 }
 
 outcomes.sizes <- table(outcomes.c$reporterID)
