@@ -61,6 +61,7 @@ option_list <-
         make_option("--fixef", help = "fixed effects terms", default = NULL),
         make_option("--intef", help = "fixed interaction effects terms", default = NULL),
         make_option("--ranef", help = "random effects terms", default = NULL),
+        make_option("--prefilter", help = "only test pairs listed in this sqlite database", default = NULL),
         make_option("--genespos", help = "genes positions sqlite database", default = NULL),
         make_option("--snpspos", help = "snps positions sqlite database",  default = NULL),
         make_option("--cis-window", help = "cis window size [default: 5e5]", default = 5e5),
@@ -89,6 +90,9 @@ with(opts, {
     stopifnot(file.exists(intef))
   }
   stopifnot(file.exists(ranef))
+  if("prefilter" %in% names(opts)) {
+    stopifnot(file.exists(prefilter))
+  }
   stopifnot(file.exists(genespos))
   stopifnot(file.exists(snpspos))
   stopifnot(`cis-window` >= 0)
@@ -109,6 +113,10 @@ sink()
 db <- dbConnect(dbDriver("SQLite"), ":memory:")
 ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
+
+if(!is.null(opts$prefilter)) {
+  ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
+}
 
 if(opts$regressors == "-") {
   input <- file("stdin")
@@ -375,9 +383,34 @@ for(outcomesBreak in outcomesBreaks) {
 
   BUCKING_TICK <- Sys.time()
 
-  data <- merge(genotype,
-                outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ],
-                by = "sampleID")
+  OC <- outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ]
+
+  if(!is.null(opts$prefilter)) {
+
+    ignore <- dbWriteTable(db, name = "gtinput", genotype)
+    ignore <- dbWriteTable(db, name = "outcinput",
+                           subset(OC, select = c(reporterID, sampleID)))
+    data <- dbGetQuery(db, "
+SELECT
+       gt.SNPID as SNPID, outc.reporterID as reporterID,
+       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
+FROM
+       gtinput as gt, outcinput as outc, filterdb.pairs as fp
+WHERE
+       gt.SNPID == fp.SNPID
+       AND outc.reporterID == fp.reporterID
+       AND gt.sampleID == outc.sampleID
+")
+    ignore <- dbRemoveTable(db, "gtinput")
+    ignore <- dbRemoveTable(db, "outcinput")
+    data <- merge(data, OC, by = c("reporterID", "sampleID"))
+
+  } else {
+
+    data <- merge(genotype, OC, by = "sampleID")
+
+  }
+
   outcomesRowCounter <- outcomesBreak
 
   JOINING_TICK <- Sys.time()
