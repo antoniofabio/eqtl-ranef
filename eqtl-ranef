@@ -214,7 +214,7 @@ if(!is.null(opts$prefilter)) {
   ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
   OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
   OC.vnames <- paste(paste("outc.", OC.vnames), collapse = ", ")
-  data.query <- sprintf("
+  prefilter.query <- sprintf("
 SELECT
        gt.SNPID as SNPID, outc.reporterID as reporterID,
        gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
@@ -404,7 +404,7 @@ for(outcomesBreak in outcomesBreaks) {
 
     ignore <- dbWriteTable(db, name = "gtinput", genotype)
     ignore <- dbWriteTable(db, name = "outcinput", OC)
-    data <- dbGetQuery(db, data.query)
+    data <- dbGetQuery(db, prefilter.query)
     ignore <- dbRemoveTable(db, "gtinput")
     ignore <- dbRemoveTable(db, "outcinput")
 
