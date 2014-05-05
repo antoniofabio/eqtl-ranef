@@ -373,11 +373,13 @@ if(nrow(genotype) == 0) {
 }
 
 if(!is.null(opts$prefilter)) {
-  dbWriteTable(db, name = "gtinput", genotype)
+  ignore <- dbWriteTable(db, name = "gtinput", genotype)
   genotype <- dbGetQuery(db, "SELECT gt.SNPID as SNPID, gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
 FROM gt, filterdb.pairs
-WHERE gt.SNPID = filterdb.pairs.SNPID")
-  dbRemoveTable(db, "gtinput")
+WHERE gt.SNPID == filterdb.pairs.SNPID")
+  ignore <- dbRemoveTable(db, "gtinput")
+  JOINING_TICK <- Sys.time()
+  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - READING_TICK)
 }
 
 numRegressors <- length(unique(genotype$SNPID))
