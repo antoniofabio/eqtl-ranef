@@ -17,7 +17,6 @@ DRIVERS <-
                               nobs = nrow(dat)),
                    pvalue <= pvalue.max)
           }, error = function(e) {
-            stop(e)
             return(NULL)
           })
         },
@@ -26,7 +25,7 @@ DRIVERS <-
         INTERACTIONS = list(fitter = function(dat) {
           tryCatch({
             B <- coefficients(summary(lmer(formula, data = dat)))
-            copyNumberTerms <- grepl("^alleleCopyNumber", rownames(B),, value = TRUE)
+            copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
             interactionTerms <- sub("^alleleCopyNumber", "", copyNumberTerms)
             out <- B[copyNumberTerms,, drop = FALSE]
             tValue <- out[, "t value"]
@@ -135,15 +134,21 @@ sink()
 formula.components <- list()
 
 message("reading fixed effects data...")
-fixef <- read.table(opts$fixef,
+fc <- file(opts$fixef, "r")
+h <- readLines(fc, n = 1)
+pushBack(h, fc)
+fixef <- read.table(fc,
                     sep = "\t",
                     header = FALSE,
                     quote = "",
                     comment.char = "",
-                    colClasses = c("character", NA_character_))
+                    colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")) - 1)))
+close(fc)
 names(fixef)[1] <- "sampleID"
 names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
-formula.components$fixef <- paste(names(fixef)[-1], collapse = " + ")
+if(length(fixef) > 1) {
+  formula.components$fixef <- paste(names(fixef)[-1], collapse = " + ")
+}
 message("done:")
 sink(stderr())
 str(fixef)
