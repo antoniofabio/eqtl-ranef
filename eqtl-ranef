@@ -1,21 +1,51 @@
 #!/usr/bin/env Rscript
 
 ##
-## MODEL FITTING FUNCTION
+## MODEL FITTING FUNCTIONS
 ##
-DRIVER <- function(dat) {
-  tryCatch({
-    out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
-    tValue <- out[, "t value"]
-    subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
-                      beta = out[, "Estimate"],
-                      t = tValue,
-                      nobs = nrow(dat)),
-           pvalue <= pvalue.max)
-  }, error = function(e) {
-    return(NULL)
-  })
-}
+DRIVERS <-
+    list(
+
+        DEFAULT = list(fitter = function(dat) {
+          tryCatch({
+            B <- coefficients(summary(lmer(formula, data = dat)))
+            out <- B["alleleCopyNumber",, drop = FALSE]
+            tValue <- out[, "t value"]
+            subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                              beta = out[, "Estimate"],
+                              t = tValue,
+                              nobs = nrow(dat)),
+                   pvalue <= pvalue.max)
+          }, error = function(e) {
+            stop(e)
+            return(NULL)
+          })
+        },
+            colnames = c("pvalue", "beta", "t", "nobs")),
+
+        INTERACTIONS = list(fitter = function(dat) {
+          tryCatch({
+            B <- coefficients(summary(lmer(formula, data = dat)))
+            copyNumberTerms <- grepl("^alleleCopyNumber", rownames(B),, value = TRUE)
+            interactionTerms <- sub("^alleleCopyNumber", "", copyNumberTerms)
+            out <- B[copyNumberTerms,, drop = FALSE]
+            tValue <- out[, "t value"]
+            subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                              beta = out[, "Estimate"],
+                              t = tValue,
+                              nobs = nrow(dat),
+                              interactionTerm = interactionTerms,
+                              stringsAsFactors = FALSE),
+                   pvalue <= pvalue.max)
+          }, error = function(e) {
+            return(NULL)
+          })
+        },
+            colnames = c("pvalue", "beta", "t", "nobs", "interactionTerm"))
+
+        )
+
+DRIVER <- DRIVERS$DEFAULT
 
 suppressMessages({
   library(optparse)
@@ -241,7 +271,7 @@ cisCondition <- sprintf("((gtpos.chromosome == gexpos.chromosome)
 ", opts$`cis-window`, opts$`cis-window`)
 
 filteringQuery <- sprintf('
-  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue, rs.beta as beta, rs.t as t, rs.nobs as nobs,
+  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, %s,
          CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
   FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
   WHERE gtpos.SNPID == rs.SNPID
@@ -252,7 +282,9 @@ filteringQuery <- sprintf('
     OR
      rs.pvalue <= %f
    )
-', cisCondition, cisCondition, opts$`trans-pvalue`)
+',
+                          paste(paste0(paste("rs", sep = ".", DRIVER$colnames), " as ", DRIVER$colnames), collapse = ", "),
+                          cisCondition, cisCondition, opts$`trans-pvalue`)
 
 ##
 ## MAIN LOOP
@@ -315,7 +347,7 @@ for(outcomesBreak in outcomesBreaks) {
   JOINING_TICK <- Sys.time()
   JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
 
-  results <- ddply(data, .(reporterID, SNPID), DRIVER, .parallel = opts$cores > 1)
+  results <- ddply(data, .(reporterID, SNPID), DRIVER$fitter, .parallel = opts$cores > 1)
 
   PROCESSING_TICK <- Sys.time()
   PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
