@@ -114,10 +114,6 @@ db <- dbConnect(dbDriver("SQLite"), ":memory:")
 ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
 
-if(!is.null(opts$prefilter)) {
-  ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
-}
-
 if(opts$regressors == "-") {
   input <- file("stdin")
 } else {
@@ -213,6 +209,25 @@ outcomes.c <- outcomes.c[order(outcomes.c$reporterID), ]
 sink(stderr())
 str(outcomes.c)
 sink()
+
+if(!is.null(opts$prefilter)) {
+  ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
+  OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
+  OC.vnames <- paste(paste("outc.", OC.vnames), collapse = ", ")
+  data.query <- sprintf("
+SELECT
+       gt.SNPID as SNPID, outc.reporterID as reporterID,
+       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
+       %s
+FROM
+       gtinput as gt, outcinput as outc, filterdb.pairs as fp
+WHERE
+       gt.SNPID == fp.SNPID
+       AND outc.reporterID == fp.reporterID
+       AND gt.sampleID == outc.sampleID
+", OC.vnames)
+
+}
 
 outcomes.sizes <- table(outcomes.c$reporterID)
 
@@ -388,22 +403,10 @@ for(outcomesBreak in outcomesBreaks) {
   if(!is.null(opts$prefilter)) {
 
     ignore <- dbWriteTable(db, name = "gtinput", genotype)
-    ignore <- dbWriteTable(db, name = "outcinput",
-                           subset(OC, select = c(reporterID, sampleID)))
-    data <- dbGetQuery(db, "
-SELECT
-       gt.SNPID as SNPID, outc.reporterID as reporterID,
-       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
-FROM
-       gtinput as gt, outcinput as outc, filterdb.pairs as fp
-WHERE
-       gt.SNPID == fp.SNPID
-       AND outc.reporterID == fp.reporterID
-       AND gt.sampleID == outc.sampleID
-")
+    ignore <- dbWriteTable(db, name = "outcinput", OC)
+    data <- dbGetQuery(db, data.query)
     ignore <- dbRemoveTable(db, "gtinput")
     ignore <- dbRemoveTable(db, "outcinput")
-    data <- merge(data, OC, by = c("reporterID", "sampleID"))
 
   } else {
 
