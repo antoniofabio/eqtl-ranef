@@ -2,6 +2,7 @@
 
 set -e
 set -u
+set -o pipefail
 
 TMPD=`mktemp -d`
 trap "rm -rf ${TMPD}" EXIT
