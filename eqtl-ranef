@@ -1,5 +1,22 @@
 #!/usr/bin/env Rscript
 
+##
+## MODEL FITTING FUNCTION
+##
+DRIVER <- function(dat) {
+  tryCatch({
+    out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
+    tValue <- out[, "t value"]
+    subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                      beta = out[, "Estimate"],
+                      t = tValue,
+                      nobs = nrow(dat)),
+           pvalue <= pvalue.max)
+  }, error = function(e) {
+    return(NULL)
+  })
+}
+
 suppressMessages({
   library(optparse)
   library(reshape)
@@ -121,23 +138,6 @@ outcomes.c <- outcomes.c[order(outcomes.c$reporterID), ]
 sink(stderr())
 str(outcomes.c)
 sink()
-
-##
-## MODEL FITTING FUNCTION
-##
-fitter <- function(dat) {
-  tryCatch({
-    out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
-    tValue <- out[, "t value"]
-    subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
-                      beta = out[, "Estimate"],
-                      t = tValue,
-                      nobs = nrow(dat)),
-           pvalue <= pvalue.max)
-  }, error = function(e) {
-    return(NULL)
-  })
-}
 
 outcomes.sizes <- table(outcomes.c$reporterID)
 
@@ -315,7 +315,7 @@ for(outcomesBreak in outcomesBreaks) {
   JOINING_TICK <- Sys.time()
   JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
 
-  results <- ddply(data, .(reporterID, SNPID), fitter, .parallel = opts$cores > 1)
+  results <- ddply(data, .(reporterID, SNPID), DRIVER, .parallel = opts$cores > 1)
 
   PROCESSING_TICK <- Sys.time()
   PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
