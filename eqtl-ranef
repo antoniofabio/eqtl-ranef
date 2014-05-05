@@ -388,12 +388,19 @@ for(outcomesBreak in outcomesBreaks) {
   if(!is.null(opts$prefilter)) {
 
     ignore <- dbWriteTable(db, name = "gtinput", genotype)
-    ignore <- dbWriteTable(db, name = "outcinput", subset(OC, select = c(reporterID, sampleID)))
-    data <- dbGetQuery(db, "SELECT gt.SNPID as SNPID, gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
-                                   outc.reporterID as reporterID, outc.sampleID as sampleID
-FROM  gtinput as gt, outcinput as outc, filterdb.pairs as fp
-WHERE gt.SNPID == fp.SNPID
-AND pp.reporterID == fp.reporterID")
+    ignore <- dbWriteTable(db, name = "outcinput",
+                           subset(OC, select = c(reporterID, sampleID)))
+    data <- dbGetQuery(db, "
+SELECT
+       gt.SNPID as SNPID, outc.reporterID as reporterID,
+       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
+FROM
+       gtinput as gt, outcinput as outc, filterdb.pairs as fp
+WHERE
+       gt.SNPID == fp.SNPID
+       AND outc.reporterID == fp.reporterID
+       AND gt.sampleID == outc.sampleID
+")
     ignore <- dbRemoveTable(db, "gtinput")
     ignore <- dbRemoveTable(db, "outcinput")
     data <- merge(data, OC, by = c("reporterID", "sampleID"))

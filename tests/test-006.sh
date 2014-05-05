@@ -9,7 +9,7 @@ set -o pipefail
   --outcomes=data/expression.thin \
   --fixef=data/fixef.tab \
   --ranef=data/ranef.tab \
-  --prefilter=FIXME \
+  --prefilter=data/prefilter.full.sqlite \
   --genespos=data/genespos.sqlite \
   --snpspos=data/snpspos.sqlite \
   --cis-pvalue=1.0 --trans-pvalue=1.0 \
