@@ -41,7 +41,7 @@ option_list <-
         make_option("--regressors-chunk-size", help = "regressors reading chunk size [default: 1000]", default = 1000L)
         )
 
-parser <- OptionParser(usage = "%prog [options] < genotype.thin.dose",
+parser <- OptionParser(usage = "%prog [options]",
                        description = "random effects eqtls",
                        option_list = option_list)
 opts <- parse_args(parser, positional_arguments = FALSE)
