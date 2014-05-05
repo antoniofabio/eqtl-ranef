@@ -1,21 +1,50 @@
 #!/usr/bin/env Rscript
 
 ##
-## MODEL FITTING FUNCTION
+## MODEL FITTING FUNCTIONS
 ##
-DRIVER <- function(dat) {
-  tryCatch({
-    out <- coefficients(summary(lmer(formula, data = dat)))["alleleCopyNumber",, drop = FALSE]
-    tValue <- out[, "t value"]
-    subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
-                      beta = out[, "Estimate"],
-                      t = tValue,
-                      nobs = nrow(dat)),
-           pvalue <= pvalue.max)
-  }, error = function(e) {
-    return(NULL)
-  })
-}
+DRIVERS <-
+    list(
+
+        DEFAULT = list(fitter = function(dat) {
+          tryCatch({
+            B <- coefficients(summary(lmer(formula, data = dat)))
+            out <- B["alleleCopyNumber",, drop = FALSE]
+            tValue <- out[, "t value"]
+            subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                              beta = out[, "Estimate"],
+                              t = tValue,
+                              nobs = nrow(dat)),
+                   pvalue <= pvalue.max)
+          }, error = function(e) {
+            return(NULL)
+          })
+        },
+            colnames = c("pvalue", "beta", "t", "nobs")),
+
+        INTERACTIONS = list(fitter = function(dat) {
+          tryCatch({
+            B <- coefficients(summary(lmer(formula, data = dat)))
+            copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
+            interactionTerms <- sub("^alleleCopyNumber", "", copyNumberTerms)
+            out <- B[copyNumberTerms,, drop = FALSE]
+            tValue <- out[, "t value"]
+            subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+                              beta = out[, "Estimate"],
+                              t = tValue,
+                              nobs = nrow(dat),
+                              interactionTerm = interactionTerms,
+                              stringsAsFactors = FALSE),
+                   pvalue <= pvalue.max)
+          }, error = function(e) {
+            return(NULL)
+          })
+        },
+            colnames = c("pvalue", "beta", "t", "nobs", "interactionTerm"))
+
+        )
+
+DRIVER <- DRIVERS$DEFAULT
 
 suppressMessages({
   library(optparse)
@@ -30,6 +59,7 @@ option_list <-
         make_option("--regressors", help = "regressors data matrix file (use '-' for standard input)", default = NULL),
         make_option("--outcomes", help = "outcomes data matrix file", default = NULL),
         make_option("--fixef", help = "fixed effects terms", default = NULL),
+        make_option("--intef", help = "fixed interaction effects terms", default = NULL),
         make_option("--ranef", help = "random effects terms", default = NULL),
         make_option("--genespos", help = "genes positions sqlite database", default = NULL),
         make_option("--snpspos", help = "snps positions sqlite database",  default = NULL),
@@ -55,6 +85,9 @@ with(opts, {
   }
   stopifnot(file.exists(outcomes))
   stopifnot(file.exists(fixef))
+  if("intef" %in% names(opts)) {
+    stopifnot(file.exists(intef))
+  }
   stopifnot(file.exists(ranef))
   stopifnot(file.exists(genespos))
   stopifnot(file.exists(snpspos))
@@ -98,15 +131,24 @@ sink(stderr())
 str(outcomes)
 sink()
 
+formula.components <- list()
+
 message("reading fixed effects data...")
-fixef <- read.table(opts$fixef,
+fc <- file(opts$fixef, "r")
+h <- readLines(fc, n = 1)
+pushBack(h, fc)
+fixef <- read.table(fc,
                     sep = "\t",
                     header = FALSE,
                     quote = "",
                     comment.char = "",
-                    colClasses = c("character", NA_character_))
+                    colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")[[1]]) - 1)))
+close(fc)
 names(fixef)[1] <- "sampleID"
 names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
+if(length(fixef) > 1) {
+  formula.components$fixef <- paste(names(fixef)[-1], collapse = " + ")
+}
 message("done:")
 sink(stderr())
 str(fixef)
@@ -121,6 +163,7 @@ ranef <- read.table(opts$ranef,
                     colClasses = c("character", NA_character_))
 names(ranef)[1] <- "sampleID"
 names(ranef)[-1] <- paste0("R", seq_len(length(ranef) - 1))
+formula.components$ranef <- paste(sprintf("(1 | %s)", names(ranef)[-1], collapse = " + "))
 message("done:")
 sink(stderr())
 str(ranef)
@@ -131,6 +174,30 @@ covariates <- merge(fixef, ranef, by = "sampleID")
 sink(stderr())
 str(covariates)
 sink()
+
+if(!is.null(opts$intef)) {
+  DRIVER <- DRIVERS$INTERACTION
+  message("reading interaction effects data...")
+  intef <- read.table(opts$intef,
+                      sep = "\t",
+                      header = FALSE,
+                      quote = "",
+                      comment.char = "",
+                      colClasses = c("character", NA_character_))
+  names(intef)[1] <- "sampleID"
+  names(intef)[-1] <- paste0("FI", seq_len(length(intef) - 1))
+  formula.components$intef <- paste(paste("alleleCopyNumber * ",  names(intef)[-1], sep = ""), collapse = " + ")
+  message("done:")
+  sink(stderr())
+  str(intef)
+  sink()
+
+  message("merging covariates data...")
+  covariates <- merge(covariates, intef, by = "sampleID")
+  sink(stderr())
+  str(covariates)
+  sink()
+}
 
 message("merging outcomes data...")
 outcomes.c <- merge(outcomes, covariates, by = "sampleID")
@@ -166,9 +233,8 @@ splitItemsInto <- function(items.sizes, numPerPiece) {
 ##
 ## build formula
 ##
-formula.fixef <- paste(names(fixef)[-1], collapse = " + ")
-formula.ranef <- paste(sprintf("(1 | %s)", names(ranef)[-1]), collapse = " + ")
-formula.str <- sprintf("expression ~ alleleCopyNumber + %s + %s", formula.fixef, formula.ranef)
+formula.str <- sprintf("expression ~ alleleCopyNumber + %s",
+                       paste(as.vector(formula.components), collapse = " + "))
 formula <- as.formula(formula.str)
 message("model formula:")
 sink(stderr())
@@ -241,7 +307,7 @@ cisCondition <- sprintf("((gtpos.chromosome == gexpos.chromosome)
 ", opts$`cis-window`, opts$`cis-window`)
 
 filteringQuery <- sprintf('
-  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, rs.pvalue as pvalue, rs.beta as beta, rs.t as t, rs.nobs as nobs,
+  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, %s,
          CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
   FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
   WHERE gtpos.SNPID == rs.SNPID
@@ -252,7 +318,9 @@ filteringQuery <- sprintf('
     OR
      rs.pvalue <= %f
    )
-', cisCondition, cisCondition, opts$`trans-pvalue`)
+',
+                          paste(paste0(paste("rs", sep = ".", DRIVER$colnames), " as ", DRIVER$colnames), collapse = ", "),
+                          cisCondition, cisCondition, opts$`trans-pvalue`)
 
 ##
 ## MAIN LOOP
@@ -315,7 +383,7 @@ for(outcomesBreak in outcomesBreaks) {
   JOINING_TICK <- Sys.time()
   JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
 
-  results <- ddply(data, .(reporterID, SNPID), DRIVER, .parallel = opts$cores > 1)
+  results <- ddply(data, .(reporterID, SNPID), DRIVER$fitter, .parallel = opts$cores > 1)
 
   PROCESSING_TICK <- Sys.time()
   PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
