@@ -372,16 +372,6 @@ if(nrow(genotype) == 0) {
   break
 }
 
-if(!is.null(opts$prefilter)) {
-  ignore <- dbWriteTable(db, name = "gtinput", genotype)
-  genotype <- dbGetQuery(db, "SELECT gt.SNPID as SNPID, gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
-FROM gt, filterdb.pairs
-WHERE gt.SNPID == filterdb.pairs.SNPID")
-  ignore <- dbRemoveTable(db, "gtinput")
-  JOINING_TICK <- Sys.time()
-  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - READING_TICK)
-}
-
 numRegressors <- length(unique(genotype$SNPID))
 SNPs_COUNTER <- SNPs_COUNTER + numRegressors
 
@@ -393,9 +383,27 @@ for(outcomesBreak in outcomesBreaks) {
 
   BUCKING_TICK <- Sys.time()
 
-  data <- merge(genotype,
-                outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ],
-                by = "sampleID")
+  OC <- outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ]
+
+  if(!is.null(opts$prefilter)) {
+
+    ignore <- dbWriteTable(db, name = "gtinput", genotype)
+    ignore <- dbWriteTable(db, name = "outcinput", subset(OC, select = c(reporterID, sampleID)))
+    data <- dbGetQuery(db, "SELECT gt.SNPID as SNPID, gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
+                                   outc.reporterID as reporterID, outc.sampleID as sampleID
+FROM  gtinput as gt, outcinput as outc, filterdb.pairs as fp
+WHERE gt.SNPID == fp.SNPID
+AND pp.reporterID == fp.reporterID")
+    ignore <- dbRemoveTable(db, "gtinput")
+    ignore <- dbRemoveTable(db, "outcinput")
+    data <- merge(data, OC, by = c("reporterID", "sampleID"))
+
+  } else {
+
+    data <- merge(genotype, OC, by = "sampleID")
+
+  }
+
   outcomesRowCounter <- outcomesBreak
 
   JOINING_TICK <- Sys.time()
