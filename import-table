@@ -1,0 +1,64 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(RSQLite)
+})
+
+option_list <-
+    list(
+        make_option("--input", help = "input data file [default: stdin]", default = "-"),
+        make_option("--output", help = "output file [default: 'table.sqlite']", default = "table.sqlite"),
+        make_option("--table-name", help = "SQL table name [default: 'TB']", default = "TB"),
+        make_option("--no-index", help = "disable indexing [default: create index on first column]", default = FALSE, action = "store_true")
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "import tab-delimited table in an sqlite database",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+if(opts$input == "-") {
+  input <- file("stdin")
+} else {
+  input <- file(opts$input, open = "r", raw = TRUE)
+}
+
+if(file.exists(opts$output)) {
+  message("WARNING: removing already existing file ", shQuote(opts$output))
+  stopifnot(file.remove(opts$output))
+}
+
+db <- dbConnect(dbDriver("SQLite"), opts$output)
+
+## read full input data
+message("reading input data...")
+contents <- read.table(input,
+                       header = TRUE,
+                       sep = "\t",
+                       as.is = TRUE,
+                       check.names = FALSE,
+                       quote = "",
+                       comment.char = "")
+message("done:")
+sink(stderr())
+str(contents)
+sink()
+
+status <- dbWriteTable(db, name = opts$`table-name`, value = contents, append = TRUE, row.names = FALSE)
+
+if(!status) {
+  stop("error writing data to the database")
+}
+
+if(!(opts$`no-index`)) {
+  ignore <- dbGetQuery(db, sprintf("CREATE INDEX idx on %s(%s)",
+                                   opts$`table-name`, names(contents)[1]))
+}
+
+status <- dbDisconnect(db)
+if(!status) {
+  stop("error disconnecting from database")
+}
+
+message("completed.")
