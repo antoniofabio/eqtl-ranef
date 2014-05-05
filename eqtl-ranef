@@ -142,7 +142,7 @@ fixef <- read.table(fc,
                     header = FALSE,
                     quote = "",
                     comment.char = "",
-                    colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")) - 1)))
+                    colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")[[1]]) - 1)))
 close(fc)
 names(fixef)[1] <- "sampleID"
 names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
