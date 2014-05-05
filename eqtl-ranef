@@ -61,6 +61,7 @@ option_list <-
         make_option("--fixef", help = "fixed effects terms", default = NULL),
         make_option("--intef", help = "fixed interaction effects terms", default = NULL),
         make_option("--ranef", help = "random effects terms", default = NULL),
+        make_option("--prefilter", help = "only test pairs listed in this sqlite database", default = NULL),
         make_option("--genespos", help = "genes positions sqlite database", default = NULL),
         make_option("--snpspos", help = "snps positions sqlite database",  default = NULL),
         make_option("--cis-window", help = "cis window size [default: 5e5]", default = 5e5),
@@ -89,6 +90,9 @@ with(opts, {
     stopifnot(file.exists(intef))
   }
   stopifnot(file.exists(ranef))
+  if("prefilter" %in% names(opts)) {
+    stopifnot(file.exists(prefilter))
+  }
   stopifnot(file.exists(genespos))
   stopifnot(file.exists(snpspos))
   stopifnot(`cis-window` >= 0)
@@ -109,6 +113,10 @@ sink()
 db <- dbConnect(dbDriver("SQLite"), ":memory:")
 ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
+
+if(!is.null(opts$prefilter)) {
+  ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
+}
 
 if(opts$regressors == "-") {
   input <- file("stdin")
@@ -362,6 +370,14 @@ READING_TIME <- READING_TIME + (READING_TICK - INIT_TICK)
 if(nrow(genotype) == 0) {
   message("no more lines in input: terminating...")
   break
+}
+
+if(!is.null(opts$prefilter)) {
+  dbWriteTable(db, name = "gtinput", genotype)
+  genotype <- dbGetQuery(db, "SELECT gt.SNPID as SNPID, gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber
+FROM gt, filterdb.pairs
+WHERE gt.SNPID = filterdb.pairs.SNPID")
+  dbRemoveTable(db, "gtinput")
 }
 
 numRegressors <- length(unique(genotype$SNPID))
