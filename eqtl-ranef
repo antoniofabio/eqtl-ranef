@@ -26,7 +26,7 @@ DRIVERS <-
           tryCatch({
             B <- coefficients(summary(lmer(formula, data = dat)))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
-            interactionTerms <- sub("^alleleCopyNumber", "", copyNumberTerms)
+            interactionTerms <- sub("^alleleCopyNumber:", ":", copyNumberTerms)
             out <- B[copyNumberTerms,, drop = FALSE]
             tValue <- out[, "t value"]
             subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
