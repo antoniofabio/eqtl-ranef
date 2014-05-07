@@ -13,7 +13,7 @@ opts : List of 7
  $ outcomes  : num 2
  $ samples   : num 30
  $ fixef     : num 1
- $ output    : chr "/tmp/tmp.2oXXoCkkSm"
+ $ output    : chr "/tmp/tmp.FwMOKvJ3hY"
  $ seed      : num 1234
  $ help      : logi FALSE
 outcomesIDs :  chr [1:2] "outcome1" "outcome2"
@@ -40,13 +40,13 @@ chromosomeLength = 4
 2 regressor2          1        5
 analysis completed.
 List of 14
- $ regressors           : chr "/tmp/tmp.2oXXoCkkSm/regressors"
- $ outcomes             : chr "/tmp/tmp.2oXXoCkkSm/outcomes"
- $ fixef                : chr "/tmp/tmp.2oXXoCkkSm/fixef"
- $ intef                : chr "/tmp/tmp.2oXXoCkkSm/intef"
- $ ranef                : chr "/tmp/tmp.2oXXoCkkSm/ranef"
- $ genespos             : chr "/tmp/tmp.2oXXoCkkSm/genespos.sqlite"
- $ snpspos              : chr "/tmp/tmp.2oXXoCkkSm/snpspos.sqlite"
+ $ regressors           : chr "/tmp/tmp.FwMOKvJ3hY/regressors"
+ $ outcomes             : chr "/tmp/tmp.FwMOKvJ3hY/outcomes"
+ $ fixef                : chr "/tmp/tmp.FwMOKvJ3hY/fixef"
+ $ intef                : chr "/tmp/tmp.FwMOKvJ3hY/intef"
+ $ ranef                : chr "/tmp/tmp.FwMOKvJ3hY/ranef"
+ $ genespos             : chr "/tmp/tmp.FwMOKvJ3hY/genespos.sqlite"
+ $ snpspos              : chr "/tmp/tmp.FwMOKvJ3hY/snpspos.sqlite"
  $ cis-window           : num 5e+05
  $ trans-pvalue         : num 1
  $ cis-pvalue           : num 1
@@ -93,18 +93,20 @@ merging outcomes data...
 model formula:
 expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber * 
     FI1
+baseline formula:
+expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber
 
-=> main loop started on Wed May  7 09:31:07 2014
+=> main loop started on Wed May  7 13:40:24 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Wed May  7 09:31:07 2014
+=> main loop completed on Wed May  7 13:40:25 2014
 
-2 regressors processed in 0.4132035 secs
- reading input: 0.005176544 secs
- joining data: 0.002274036 secs
- processing: 0.1741059 secs
- filtering output: 0.01468158 secs
- writing output: 0.001636267 secs
- garbage collection: 0.1794388 secs
+2 regressors processed in 0.6973867 secs
+ reading input: 0.003823519 secs
+ joining data: 0.002238512 secs
+ processing: 0.4671574 secs
+ filtering output: 0.01339173 secs
+ writing output: 0.001562119 secs
+ garbage collection: 0.174968 secs
 analysis completed.

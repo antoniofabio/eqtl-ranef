@@ -24,19 +24,36 @@ DRIVERS <-
 
         INTERACTIONS = list(fitter = function(dat) {
           tryCatch({
-            B <- coefficients(summary(lmer(formula, data = dat)))
+
+            fit.full <- lmer(formula, data = dat) ## including interaction terms
+            fit.base <- lmer(formula.baseline, data = dat) ## main effects only
+
+            fit.compare <- anova(fit.base, fit.full)
+
+            B <- coefficients(summary(fit.full))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
             interactionTerms <- sub("^alleleCopyNumber:", ":", copyNumberTerms)
             out <- B[copyNumberTerms,, drop = FALSE]
             tValue <- out[, "t value"]
-            subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
+
+            ans <- data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
                               beta = out[, "Estimate"],
                               t = tValue,
                               nobs = nrow(dat),
                               interactionTerm = interactionTerms,
-                              stringsAsFactors = FALSE),
-                   pvalue <= pvalue.max)
+                              stringsAsFactors = FALSE)
+
+            ans <- rbind(ans,
+                         data.frame(pvalue = fit.compare$`Pr(>Chisq)`[2],
+                                    beta = NA_real_,
+                                    t = fit.compare$Chisq[2],
+                                    nobs = nrow(dat),
+                                    interactionTerm = "anyInteraction",
+                                    stringsAsFactors = FALSE))
+
+            subset(ans, pvalue <= pvalue.max)
           }, error = function(e) {
+            stop(e)
             return(NULL)
           })
         },
@@ -269,6 +286,14 @@ message("model formula:")
 sink(stderr())
 print(formula)
 sink()
+
+if(!is.null(opts$intef)) {
+  formula.baseline <- as.formula(gsub(" *\\* *FI[0-9]+", "", formula.str))
+  message("baseline formula:")
+  sink(stderr())
+  print(formula.baseline)
+  sink()
+}
 
 CHUNK_SIZE <- opts$`regressors-chunk-size`
 readRegressor <- function(con) {
