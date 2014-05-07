@@ -85,7 +85,9 @@ with(opts, {
     stopifnot(file.exists(regressors))
   }
   stopifnot(file.exists(outcomes))
-  stopifnot(file.exists(fixef))
+  if("fixef" %in% names(opts)) {
+    stopifnot(file.exists(fixef))
+  }
   if("intef" %in% names(opts)) {
     stopifnot(file.exists(intef))
   }
@@ -137,26 +139,30 @@ sink()
 
 formula.components <- list()
 
-message("reading fixed effects data...")
-fc <- file(opts$fixef, "r")
-h <- readLines(fc, n = 1)
-pushBack(h, fc)
-fixef <- read.table(fc,
-                    sep = "\t",
-                    header = FALSE,
-                    quote = "",
-                    comment.char = "",
-                    colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")[[1]]) - 1)))
-close(fc)
-names(fixef)[1] <- "sampleID"
-names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
-if(length(fixef) > 1) {
-  formula.components$fixef <- paste(names(fixef)[-1], collapse = " + ")
+if(!is.null(opts$fixef)) {
+  message("reading fixed effects data...")
+  fc <- file(opts$fixef, "r")
+  h <- readLines(fc, n = 1)
+  pushBack(h, fc)
+  fixef <- read.table(fc,
+                      sep = "\t",
+                      header = FALSE,
+                      quote = "",
+                      comment.char = "",
+                      colClasses = c("character", rep(NA_character_, length(strsplit(h, "\t")[[1]]) - 1)))
+  close(fc)
+  names(fixef)[1] <- "sampleID"
+  names(fixef)[-1] <- paste0("F", seq_len(length(fixef) - 1))
+  if(length(fixef) > 1) {
+    formula.components$fixef <- paste(names(fixef)[-1], collapse = " + ")
+  }
+  message("done:")
+  sink(stderr())
+  str(fixef)
+  sink()
+} else {
+  fixef <- unique(subset(outcomes, select = sampleID))
 }
-message("done:")
-sink(stderr())
-str(fixef)
-sink()
 
 message("reading random effects data...")
 ranef <- read.table(opts$ranef,
