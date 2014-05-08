@@ -288,7 +288,7 @@ print(formula)
 sink()
 
 if(!is.null(opts$intef)) {
-  formula.baseline <- as.formula(gsub(" *\\* *FI[0-9]+", "", formula.str))
+  formula.baseline <- as.formula(gsub(" *\\* *FI[0-9]+[a-z,A-Z]*", "", formula.str))
   message("baseline formula:")
   sink(stderr())
   print(formula.baseline)
