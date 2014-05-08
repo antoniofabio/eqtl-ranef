@@ -28,7 +28,7 @@ DRIVERS <-
             fit.full <- lmer(formula, data = dat) ## including interaction terms
             fit.base <- lmer(formula.baseline, data = dat) ## main effects only
 
-            fit.compare <- anova(fit.base, fit.full)
+            suppressMessages(fit.compare <- anova(fit.base, fit.full))
 
             B <- coefficients(summary(fit.full))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
