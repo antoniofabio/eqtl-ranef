@@ -233,6 +233,11 @@ sink(stderr())
 str(outcomes.c)
 sink()
 
+if(nrow(outcomes.c) == 0) {
+  message("empty dataset! terminating...")
+  quit(save = "no", status = 0)
+}
+
 if(!is.null(opts$prefilter)) {
   ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
   OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
