@@ -48,19 +48,20 @@ model formula:
 expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber * 
     FI1
 baseline formula:
-expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber
+expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber + 
+    FI1
 
-=> main loop started on Thu May  8 13:20:27 2014
+=> main loop started on Thu May  8 13:35:55 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Thu May  8 13:20:28 2014
+=> main loop completed on Thu May  8 13:35:55 2014
 
-2 regressors processed in 0.7280853 secs
- reading input: 0.003582478 secs
- joining data: 0.002268553 secs
- processing: 0.4983037 secs
- filtering output: 0.01322722 secs
- writing output: 0.00169611 secs
- garbage collection: 0.1757565 secs
+2 regressors processed in 0.7286494 secs
+ reading input: 0.003502131 secs
+ joining data: 0.002193928 secs
+ processing: 0.4977701 secs
+ filtering output: 0.01343632 secs
+ writing output: 0.00160861 secs
+ garbage collection: 0.1764972 secs
 analysis completed.
