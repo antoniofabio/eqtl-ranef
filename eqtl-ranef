@@ -3,12 +3,19 @@
 ##
 ## MODEL FITTING FUNCTIONS
 ##
-DRIVERS <-
+FITTERS <- list(DEFAULT = function(formula, data) lmer(formula = formula, data = data),
+                OLS = function(formula, data) lm(formula = formula, data = data))
+FITTER <- FITTERS$DEFAULT
+
+##
+## MODEL SUMMARY FUNCTIONS
+##
+SUMMARIES <-
     list(
 
         DEFAULT = list(fitter = function(dat) {
           tryCatch({
-            B <- coefficients(summary(lmer(formula, data = dat)))
+            B <- coefficients(summary(FITTER(formula, data = dat)))
             out <- B["alleleCopyNumber",, drop = FALSE]
             tValue <- out[, "t value"]
             subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
@@ -25,10 +32,10 @@ DRIVERS <-
         INTERACTIONS = list(fitter = function(dat) {
           tryCatch({
 
-            fit.full <- lmer(formula, data = dat) ## including interaction terms
-            fit.base <- lmer(formula.baseline, data = dat) ## main effects only
+            fit.full <- FITTER(formula, data = dat) ## including interaction terms
+            fit.base <- FITTER(formula.baseline, data = dat) ## main effects only
 
-            suppressMessages(fit.compare <- anova(fit.base, fit.full))
+            suppressMessages(fit.compare <- anova(fit.base, fit.full, test = "Chisq"))
 
             B <- coefficients(summary(fit.full))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
@@ -61,7 +68,7 @@ DRIVERS <-
 
         )
 
-DRIVER <- DRIVERS$DEFAULT
+SUMMARY <- SUMMARIES$DEFAULT
 
 suppressMessages({
   library(optparse)
@@ -102,13 +109,15 @@ with(opts, {
     stopifnot(file.exists(regressors))
   }
   stopifnot(file.exists(outcomes))
+  if("ranef" %in% names(opts)) {
+    stopifnot(file.exists(ranef))
+  }
   if("fixef" %in% names(opts)) {
     stopifnot(file.exists(fixef))
   }
   if("intef" %in% names(opts)) {
     stopifnot(file.exists(intef))
   }
-  stopifnot(file.exists(ranef))
   if("prefilter" %in% names(opts)) {
     stopifnot(file.exists(prefilter))
   }
@@ -180,30 +189,36 @@ if(!is.null(opts$fixef)) {
 } else {
   fixef <- unique(subset(outcomes, select = sampleID))
 }
+covariates <- fixef
 
-message("reading random effects data...")
-ranef <- read.table(opts$ranef,
-                    sep = "\t",
-                    header = FALSE,
-                    quote = "",
-                    comment.char = "",
-                    colClasses = c("character", NA_character_))
-names(ranef)[1] <- "sampleID"
-names(ranef)[-1] <- paste0("R", seq_len(length(ranef) - 1))
-formula.components$ranef <- paste(sprintf("(1 | %s)", names(ranef)[-1], collapse = " + "))
-message("done:")
-sink(stderr())
-str(ranef)
-sink()
+if(!is.null(opts$ranef)) {
+  message("reading random effects data...")
+  ranef <- read.table(opts$ranef,
+                      sep = "\t",
+                      header = FALSE,
+                      quote = "",
+                      comment.char = "",
+                      colClasses = c("character", NA_character_))
+  names(ranef)[1] <- "sampleID"
+  names(ranef)[-1] <- paste0("R", seq_len(length(ranef) - 1))
+  formula.components$ranef <- paste(sprintf("(1 | %s)", names(ranef)[-1], collapse = " + "))
+  message("done:")
+  sink(stderr())
+  str(ranef)
+  sink()
 
-message("merging covariates data...")
-covariates <- merge(fixef, ranef, by = "sampleID")
-sink(stderr())
-str(covariates)
-sink()
+  message("merging covariates data...")
+  covariates <- merge(fixef, ranef, by = "sampleID")
+  sink(stderr())
+  str(covariates)
+  sink()
+
+} else {
+  stop("simple linear model (i.e., without random effects) not implemented yet")
+}
 
 if(!is.null(opts$intef)) {
-  DRIVER <- DRIVERS$INTERACTION
+  SUMMARY <- SUMMARIES$INTERACTION
   message("reading interaction effects data...")
   intef <- read.table(opts$intef,
                       sep = "\t",
@@ -378,7 +393,7 @@ filteringQuery <- sprintf('
      rs.pvalue <= %f
    )
 ',
-                          paste(paste0(paste("rs", sep = ".", DRIVER$colnames), " as ", DRIVER$colnames), collapse = ", "),
+                          paste(paste0(paste("rs", sep = ".", SUMMARY$colnames), " as ", SUMMARY$colnames), collapse = ", "),
                           cisCondition, cisCondition, opts$`trans-pvalue`)
 
 ##
@@ -455,7 +470,7 @@ for(outcomesBreak in outcomesBreaks) {
   JOINING_TICK <- Sys.time()
   JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
 
-  results <- ddply(data, .(reporterID, SNPID), DRIVER$fitter, .parallel = opts$cores > 1)
+  results <- ddply(data, .(reporterID, SNPID), SUMMARY$fitter, .parallel = opts$cores > 1)
 
   PROCESSING_TICK <- Sys.time()
   PROCESSING_TIME <- PROCESSING_TIME + (PROCESSING_TICK - JOINING_TICK)
