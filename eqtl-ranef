@@ -130,6 +130,8 @@ with(opts, {
   stopifnot(file.exists(outcomes))
   if("ranef" %in% names(opts)) {
     stopifnot(file.exists(ranef))
+  } else {
+    message("no random effects terms specified: using OLS estimators")
   }
   if("fixef" %in% names(opts)) {
     stopifnot(file.exists(fixef))
