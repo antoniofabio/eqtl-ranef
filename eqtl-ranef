@@ -3,8 +3,33 @@
 ##
 ## MODEL FITTING FUNCTIONS
 ##
-FITTERS <- list(DEFAULT = function(formula, data) lmer(formula = formula, data = data),
-                OLS = function(formula, data) lm(formula = formula, data = data))
+FITTERS <-
+  list(
+
+       DEFAULT = list(fit = function(formula, data) lmer(formula = formula, data = data),
+         compare = function(fit.base, fit.full) {
+           suppressMessages(fit.compare <- anova(fit.base, fit.full))
+           data.frame(pvalue = fit.compare$`Pr(>Chisq)`[2],
+                      beta = NA_real_,
+                      t = fit.compare$Chisq[2],
+                      nobs = NA_real_,
+                      interactionTerm = "anyInteraction",
+                      stringsAsFactors = FALSE)
+         }),
+
+       OLS = list(fit = function(formula, data) lm(formula = formula, data = data),
+         compare = function(fit.base, fit.full) {
+           suppressMessages(fit.compare <- anova(fit.base, fit.full, test = "F"))
+           data.frame(pvalue = fit.compare$`Pr(>F)`[2],
+                      beta = NA_real_,
+                      t = fit.compare$F[2],
+                      nobs = NA_real_,
+                      interactionTerm = "anyInteraction",
+                      stringsAsFactors = FALSE)
+         })
+
+       )
+
 FITTER <- FITTERS$DEFAULT
 
 ##
@@ -15,7 +40,7 @@ SUMMARIES <-
 
         DEFAULT = list(fitter = function(dat) {
           tryCatch({
-            B <- coefficients(summary(FITTER(formula, data = dat)))
+            B <- coefficients(summary(FITTER$fit(formula, data = dat)))
             out <- B["alleleCopyNumber",, drop = FALSE]
             tValue <- out[, "t value"]
             subset(data.frame(pvalue = 2 * pnorm(abs(tValue), lower.tail = FALSE),
@@ -32,10 +57,8 @@ SUMMARIES <-
         INTERACTIONS = list(fitter = function(dat) {
           tryCatch({
 
-            fit.full <- FITTER(formula, data = dat) ## including interaction terms
-            fit.base <- FITTER(formula.baseline, data = dat) ## main effects only
-
-            suppressMessages(fit.compare <- anova(fit.base, fit.full, test = "Chisq"))
+            fit.full <- FITTER$fit(formula, data = dat) ## including interaction terms
+            fit.base <- FITTER$fit(formula.baseline, data = dat) ## main effects only
 
             B <- coefficients(summary(fit.full))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
@@ -50,13 +73,9 @@ SUMMARIES <-
                               interactionTerm = interactionTerms,
                               stringsAsFactors = FALSE)
 
-            ans <- rbind(ans,
-                         data.frame(pvalue = fit.compare$`Pr(>Chisq)`[2],
-                                    beta = NA_real_,
-                                    t = fit.compare$Chisq[2],
-                                    nobs = nrow(dat),
-                                    interactionTerm = "anyInteraction",
-                                    stringsAsFactors = FALSE))
+            ans.int <- FITTER$compare(fit.base, fit.full)
+            ans.int$nobs <- nrow(dat)
+            ans <- rbind(ans, ans.int)
 
             subset(ans, pvalue <= pvalue.max)
           }, error = function(e) {
