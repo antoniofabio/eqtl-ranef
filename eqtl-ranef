@@ -475,6 +475,10 @@ for(outcomesBreak in outcomesBreaks) {
 
     ignore <- dbWriteTable(db, name = "gtinput", genotype)
     ignore <- dbWriteTable(db, name = "outcinput", OC)
+    ignore <- dbGetQuery(db, "create index gtsnpid on gtinput(SNPID)")
+    ignore <- dbGetQuery(db, "create index outcreporterid on outcinput(reporterID)")
+    ignore <- dbGetQuery(db, "create index gtsampleid on gtinput(sampleID)")
+    ignore <- dbGetQuery(db, "create index outcsampleid on outcinput(sampleID)")
     data <- dbGetQuery(db, prefilter.query)
     ignore <- dbRemoveTable(db, "gtinput")
     ignore <- dbRemoveTable(db, "outcinput")
