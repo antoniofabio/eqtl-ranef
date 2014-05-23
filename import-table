@@ -7,10 +7,11 @@ suppressMessages({
 
 option_list <-
     list(
-        make_option("--input", help = "input data file [default: stdin]", default = "-"),
-        make_option("--output", help = "output file [default: 'table.sqlite']", default = "table.sqlite"),
-        make_option("--table-name", help = "SQL table name [default: 'TB']", default = "TB"),
-        make_option("--no-index", help = "disable indexing [default: create index on first column]", default = FALSE, action = "store_true")
+         make_option("--input", help = "input data file [default: stdin]", default = "-"),
+         make_option("--output", help = "output file [default: 'table.sqlite']", default = "table.sqlite"),
+         make_option("--table-name", help = "SQL table name [default: 'TB']", default = "TB"),
+         make_option("--no-index", help = "disable indexing [default: create index on first column]", default = FALSE, action = "store_true"),
+         make_option("--index", help = "comma-separated list of index columns [default: 1]", default = "1")
         )
 
 parser <- OptionParser(usage = "%prog [options]",
@@ -52,8 +53,14 @@ if(!status) {
 }
 
 if(!(opts$`no-index`)) {
-  ignore <- dbGetQuery(db, sprintf("CREATE INDEX idx on %s(%s)",
-                                   opts$`table-name`, names(contents)[1]))
+  cnames <- names(contents)
+  indexes <- strsplit(opts$index, ",")[[1]]
+  for(iid in indexes) {
+    colSpec <- cnames[as.numeric(iid)]
+    ignore <- dbGetQuery(db,
+                         sprintf("CREATE INDEX idx%s on %s(%s)",
+                                 iid, opts$`table-name`, colSpec))
+  }
 }
 
 status <- dbDisconnect(db)
