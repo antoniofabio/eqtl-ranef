@@ -3,7 +3,7 @@ List of 14
  $ outcomes             : chr "data/expression.thin"
  $ fixef                : chr "data/fixef.tab"
  $ ranef                : chr "data/ranef.tab"
- $ prefilter            : chr "data/prefilter.sqlite"
+ $ prefilter            : chr "data/prefilter.full.sqlite"
  $ genespos             : chr "data/genespos.sqlite"
  $ snpspos              : chr "data/snpspos.sqlite"
  $ cis-window           : num 5e+05
@@ -50,17 +50,17 @@ merging outcomes data...
 model formula:
 expression ~ alleleCopyNumber + F1 + F2 + F3 + (1 | R1)
 
-=> main loop started on Mon May  5 16:23:53 2014
+=> main loop started on Fri May 23 10:34:18 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Mon May  5 16:23:53 2014
+=> main loop completed on Fri May 23 10:34:23 2014
 
-2 regressors processed in 0.4475427 secs
- reading input: 0.003721237 secs
- joining data: 0.02552605 secs
- processing: 0.1831522 secs
- filtering output: 0.01189518 secs
- writing output: 0.001657009 secs
- garbage collection: 0.1782703 secs
+2 regressors processed in 4.235798 secs
+ reading input: 0.05149198 secs
+ joining data: 0.2017391 secs
+ processing: 1.948328 secs
+ filtering output: 0.112653 secs
+ writing output: 0.04796028 secs
+ garbage collection: 1.642937 secs
 analysis completed.

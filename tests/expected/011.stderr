@@ -51,17 +51,17 @@ baseline formula:
 expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber + 
     FI1
 
-=> main loop started on Thu May  8 13:35:55 2014
+=> main loop started on Fri May 23 10:38:06 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Thu May  8 13:35:55 2014
+=> main loop completed on Fri May 23 10:38:10 2014
 
-2 regressors processed in 0.7286494 secs
- reading input: 0.003502131 secs
- joining data: 0.002193928 secs
- processing: 0.4977701 secs
- filtering output: 0.01343632 secs
- writing output: 0.00160861 secs
- garbage collection: 0.1764972 secs
+2 regressors processed in 4.7177 secs
+ reading input: 0.01047373 secs
+ joining data: 0.02316546 secs
+ processing: 3.055164 secs
+ filtering output: 0.115139 secs
+ writing output: 0.01311111 secs
+ garbage collection: 1.201933 secs
 analysis completed.

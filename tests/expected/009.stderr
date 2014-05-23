@@ -35,17 +35,17 @@ merging outcomes data...
 model formula:
 expression ~ alleleCopyNumber + (1 | R1)
 
-=> main loop started on Wed May  7 09:25:10 2014
+=> main loop started on Fri May 23 10:37:10 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Wed May  7 09:25:11 2014
+=> main loop completed on Fri May 23 10:37:14 2014
 
-2 regressors processed in 0.4351103 secs
- reading input: 0.003727913 secs
- joining data: 0.002127647 secs
- processing: 0.1958718 secs
- filtering output: 0.01354527 secs
- writing output: 0.001583099 secs
- garbage collection: 0.1824727 secs
+2 regressors processed in 3.098821 secs
+ reading input: 0.02125335 secs
+ joining data: 0.0381465 secs
+ processing: 1.531789 secs
+ filtering output: 0.1402285 secs
+ writing output: 0.003170252 secs
+ garbage collection: 1.146591 secs
 analysis completed.
