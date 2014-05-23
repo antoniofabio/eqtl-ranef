@@ -335,6 +335,38 @@ if(!is.null(opts$intef)) {
   sink()
 }
 
+##
+## read all samples data from the 1st regressor
+##
+message("\nchecking input data format...")
+firstRegressorID <- c()
+samplesIDs <- c()
+lns <- c()
+repeat {
+  line <- readLines(input, n = 1)
+  lns <- c(lns, line)
+  fields <- strsplit(line, "\t")[[1]]
+  if(length(fields) != 3) {
+    stop("invalid input data format: was expecting 3 tab-delimited columns")
+  }
+  if(length(firstRegressorID) > 0) {
+    if(fields[1] != firstRegressorID) {
+      break
+    }
+  } else {
+    firstRegressorID <- fields[1]
+  }
+  if(fields[2] %in% samplesIDs) {
+    stop("samples ids (2nd column) must be unique")
+  }
+  samplesIDs <- c(samplesIDs, fields[2])
+}
+pushBack(lns, input)
+message("OK. detected ", length(samplesIDs), " samples:")
+sink(stderr())
+str(samplesIDs)
+sink()
+
 CHUNK_SIZE <- opts$`regressors-chunk-size`
 readRegressor <- function(con) {
 
