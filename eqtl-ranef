@@ -276,18 +276,17 @@ if(nrow(outcomes.c) == 0) {
 if(!is.null(opts$prefilter)) {
   ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
   OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
-  OC.vnames <- paste(paste("outc.", OC.vnames), collapse = ", ")
+  OC.vnames <- paste(paste("data.", OC.vnames), collapse = ", ")
   prefilter.query <- sprintf("
 SELECT
-       gt.SNPID as SNPID, outc.reporterID as reporterID,
-       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
+       data.SNPID as SNPID, data.reporterID as reporterID,
+       data.sampleID as sampleID, data.alleleCopyNumber as alleleCopyNumber,
        %s
 FROM
-       gtinput as gt, outcinput as outc, filterdb.pairs as fp
+       data, filterdb.pairs as fp
 WHERE
-       gt.SNPID == fp.SNPID
-       AND outc.reporterID == fp.reporterID
-       AND gt.sampleID == outc.sampleID
+       data.SNPID == fp.SNPID
+       AND data.reporterID == fp.reporterID
 ", OC.vnames)
 
 }
@@ -503,21 +502,15 @@ for(outcomesBreak in outcomesBreaks) {
 
   OC <- outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ]
 
+  data <- merge(genotype, OC, by = "sampleID")
+
   if(!is.null(opts$prefilter)) {
 
-    ignore <- dbWriteTable(db, name = "gtinput", genotype)
-    ignore <- dbWriteTable(db, name = "outcinput", OC)
-    ignore <- dbGetQuery(db, "create index gtsnpid on gtinput(SNPID)")
-    ignore <- dbGetQuery(db, "create index outcreporterid on outcinput(reporterID)")
-    ignore <- dbGetQuery(db, "create index gtsampleid on gtinput(sampleID)")
-    ignore <- dbGetQuery(db, "create index outcsampleid on outcinput(sampleID)")
+    ignore <- dbWriteTable(db, name = "data", data)
+    ignore <- dbGetQuery(db, "create index datsnpid on data(SNPID)")
+    ignore <- dbGetQuery(db, "create index datreporterid on data(reporterID)")
     data <- dbGetQuery(db, prefilter.query)
-    ignore <- dbRemoveTable(db, "gtinput")
-    ignore <- dbRemoveTable(db, "outcinput")
-
-  } else {
-
-    data <- merge(genotype, OC, by = "sampleID")
+    ignore <- dbRemoveTable(db, "data")
 
   }
 
