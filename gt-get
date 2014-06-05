@@ -1,0 +1,57 @@
+#!/usr/bin/env Rscript
+
+if(!suppressPackageStartupMessages(require("optparse", quietly=TRUE))) {
+  stop("the 'optparse' package is needed in order to run this script")
+}
+
+if(!suppressPackageStartupMessages(require("reshape", quietly=TRUE))) {
+  stop("the 'reshape' package is needed in order to run this script")
+}
+
+if(!suppressPackageStartupMessages(require("RSQLite", quietly=TRUE))) {
+  stop("the 'RSQLite' package is needed in order to run this script")
+}
+
+parser <- OptionParser(usage = "%prog dbFileName chrNumber:position",
+                       description = "extracts imputed genotype data for a particular position")
+opts <- parse_args(parser, positional_arguments = TRUE)
+
+args <- opts$args
+
+stopifnot(length(args) == 2)
+chrPos <- strsplit(args[2], ":")[[1]]
+
+db <- dbConnect(dbDriver("SQLite"), args[1])
+q <- function(...) dbGetQuery(db, sprintf(...))
+
+samplesIDs <- q('select * from samplesIDs')
+gt.raw <- q('select * from genotype where chromosome = "%s" and position = %d',
+            chrPos[1], as.numeric(chrPos[2]))
+if(nrow(gt.raw) == 0) {
+  quit(save = "no", status = 0)
+}
+## str(gt.raw)
+
+gt.meta <- gt.raw[, 1:10]
+gt.contents <- gt.raw[, c(1, seq(11, ncol(gt.raw))), drop = FALSE]
+gt.contents <- rename(melt(gt.contents, id.vars = "SNPID"), c(value = 'effectiveAlleleCopyNumber'))
+
+## warnings()
+
+output <- merge(gt.meta, gt.contents, by = "SNPID")
+output <- merge(samplesIDs, output, by.x = "recodedID", by.y = "variable")
+output <- subset(output, select = -recodedID)
+output <- within(output, {
+  genotype <- ifelse(round(effectiveAlleleCopyNumber) == 2,
+                     paste0(effectiveAllele, effectiveAllele),
+                     ifelse(round(effectiveAlleleCopyNumber) == 1,
+                            paste0(effectiveAllele, referenceAllele),
+                            ifelse(round(effectiveAlleleCopyNumber) == 0,
+                                   paste0(referenceAllele, referenceAllele),
+                                   "NA")))
+})
+
+write.table(output, row.names = FALSE, col.names = TRUE,
+            sep = "\t", quote = FALSE)
+
+ignore <- dbDisconnect(db)

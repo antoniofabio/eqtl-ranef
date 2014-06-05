@@ -1,0 +1,94 @@
+#!/usr/bin/env Rscript
+
+if(!suppressPackageStartupMessages(require("optparse", quietly=TRUE))) {
+  stop("the 'optparse' package is needed in order to run this script")
+}
+
+if(!suppressPackageStartupMessages(require("RSQLite", quietly=TRUE))) {
+  stop("the 'RSQLite' package is needed in order to run this script")
+}
+
+parser <- OptionParser(usage = "%prog inputFileName outputFileName",
+                       description = "imports imputed genotype data into an sqlite database")
+opts <- parse_args(parser, positional_arguments = TRUE)
+
+args <- opts$args
+
+stopifnot(length(args) == 2)
+
+input <- file(args[1], "r", raw = TRUE)
+
+header <- strsplit(readLines(input, n = 1), "\t")[[1]]
+samplesIDs <- tail(header, -7)
+message("detected ", length(samplesIDs), " samples:")
+sink(stderr())
+str(samplesIDs)
+sink()
+
+stopifnot(length(samplesIDs) > 0)
+
+samplesIDs <- data.frame(sampleID = samplesIDs,
+                         recodedID = paste0("sample", seq_along(samplesIDs)),
+                         stringsAsFactors = FALSE)
+
+BLOCK_SIZE <- 1000L
+scanner <- function() {
+  col.names <- c("SNPID", "Alleles", "Freq_A1", "MAF", "AvgCall", "Rsq", "Genotyped", samplesIDs$recodedID)
+  colClasses <- c("character", "character", "numeric", "numeric", "numeric", "numeric", "character",
+                  rep("numeric", nrow(samplesIDs)))
+  tmp <- read.table(input, colClasses = colClasses, col.names = col.names, sep = "\t",
+                    na.strings = c(""), nrows = BLOCK_SIZE)
+  if(nrow(tmp) == 0) {
+    return(NULL)
+  }
+  chrPos <- strsplit(tmp$SNPID, ":")
+  chr <- sapply(chrPos, "[", 1)
+  pos <- as.numeric(sapply(chrPos, "[", 2))
+  effRef <- strsplit(tmp$Alleles, " ")
+  eff <- sapply(effRef, "[", 1)
+  ref <- sapply(effRef, "[", 2)
+  data.frame(SNPID = tmp$SNPID,
+             chromosome = chr,
+             position = pos,
+             effectiveAllele = eff, referenceAllele = ref,
+             tmp[, -(1:2)],
+             check.names = FALSE,
+             stringsAsFactors = FALSE)
+}
+
+if(file.exists(args[2])) {
+  message("WARNING: removing pre-existing database file ", shQuote(args[2]))
+  ignore <- file.remove(args[2])
+}
+
+db <- dbConnect(dbDriver("SQLite"), args[2])
+
+cnames <- c("SNPID", "chromosome", "position",
+            "effectiveAllele", "referenceAllele",
+            "Freq_A1", "MAF", "AvgCall", "Rsq", "Genotyped",
+            samplesIDs$recodedID)
+ctypes <- c("text", "text", "real",
+            "text", "text",
+            rep("real", 4), "text",
+            rep("real", length(samplesIDs$recodedID)))
+
+ignore <- dbGetQuery(db, sprintf("create table genotype(
+%s
+)",
+                             paste(paste(cnames, ctypes), collapse = ",\n")))
+ignore <- dbGetQuery(db, "create index snpIdIndx on genotype(SNPID)")
+ignore <- dbGetQuery(db, "create index chrPosIndx on genotype(chromosome, position)")
+
+ignore <- dbWriteTable(db, "samplesIDs", samplesIDs, row.names = FALSE)
+
+repeat {
+  chunk <- scanner()
+  if(is.null(chunk)) {
+    message("no more data in input: exiting...")
+    break
+  }
+  ignore <- dbWriteTable(db, "genotype", chunk, append = TRUE, row.names = FALSE)
+}
+
+close(input)
+ignore <- dbDisconnect(db)
