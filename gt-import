@@ -81,14 +81,33 @@ ignore <- dbGetQuery(db, "create index chrPosIndx on genotype(chromosome, positi
 
 ignore <- dbWriteTable(db, "samplesIDs", samplesIDs, row.names = FALSE)
 
+TIME_INTERVAL <- as.difftime(15, units = "mins")
+ORIG_TIME <- START_TIME <- Sys.time()
+SNPs_COUNTER <- 0
+
 repeat {
+
   chunk <- scanner()
   if(is.null(chunk)) {
     message("no more data in input: exiting...")
     break
   }
+  SNPs_COUNTER <- SNPs_COUNTER + nrow(chunk)
+
   ignore <- dbWriteTable(db, "genotype", chunk, append = TRUE, row.names = FALSE)
+
+  CUR_TIME <- Sys.time()
+  ELAPSED <- CUR_TIME - START_TIME
+  if(ELAPSED > TIME_INTERVAL) {
+    START_TIME <- CUR_TIME
+    message(SNPs_COUNTER, " regressors processed in ", format(CUR_TIME - ORIG_TIME))
+  }
+
 }
+
+message(SNPs_COUNTER, " regressors processed in ", format(CUR_TIME - ORIG_TIME))
 
 close(input)
 ignore <- dbDisconnect(db)
+
+message("import completed.")
