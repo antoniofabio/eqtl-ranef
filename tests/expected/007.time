@@ -1,20 +1,20 @@
 	Command being timed: "./test-007.sh"
-	User time (seconds): 3.06
-	System time (seconds): 0.06
-	Percent of CPU this job got: 98%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:03.16
+	User time (seconds): 6.46
+	System time (seconds): 0.51
+	Percent of CPU this job got: 25%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:27.72
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 495392
+	Maximum resident set size (kbytes): 525600
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 44312
-	Voluntary context switches: 23
-	Involuntary context switches: 524
+	Minor (reclaiming a frame) page faults: 65041
+	Voluntary context switches: 1096
+	Involuntary context switches: 3507
 	Swaps: 0
-	File system inputs: 0
+	File system inputs: 80
 	File system outputs: 16
 	Socket messages sent: 0
 	Socket messages received: 0

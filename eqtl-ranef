@@ -276,18 +276,17 @@ if(nrow(outcomes.c) == 0) {
 if(!is.null(opts$prefilter)) {
   ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
   OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
-  OC.vnames <- paste(paste("outc.", OC.vnames), collapse = ", ")
+  OC.vnames <- paste(paste("data.", OC.vnames), collapse = ", ")
   prefilter.query <- sprintf("
 SELECT
-       gt.SNPID as SNPID, outc.reporterID as reporterID,
-       gt.sampleID as sampleID, gt.alleleCopyNumber as alleleCopyNumber,
+       data.SNPID as SNPID, data.reporterID as reporterID,
+       data.sampleID as sampleID, data.alleleCopyNumber as alleleCopyNumber,
        %s
 FROM
-       gtinput as gt, outcinput as outc, filterdb.pairs as fp
+       data, filterdb.pairs as fp
 WHERE
-       gt.SNPID == fp.SNPID
-       AND outc.reporterID == fp.reporterID
-       AND gt.sampleID == outc.sampleID
+       data.SNPID == fp.SNPID
+       AND data.reporterID == fp.reporterID
 ", OC.vnames)
 
 }
@@ -334,6 +333,38 @@ if(!is.null(opts$intef)) {
   print(formula.baseline)
   sink()
 }
+
+##
+## read all samples data from the 1st regressor
+##
+message("\nchecking input data format...")
+firstRegressorID <- c()
+samplesIDs <- c()
+lns <- c()
+repeat {
+  line <- readLines(input, n = 1)
+  lns <- c(lns, line)
+  fields <- strsplit(line, "\t")[[1]]
+  if(length(fields) != 3) {
+    stop("invalid input data format: was expecting 3 tab-delimited columns")
+  }
+  if(length(firstRegressorID) > 0) {
+    if(fields[1] != firstRegressorID) {
+      break
+    }
+  } else {
+    firstRegressorID <- fields[1]
+  }
+  if(fields[2] %in% samplesIDs) {
+    stop("samples ids (2nd column) must be unique")
+  }
+  samplesIDs <- c(samplesIDs, fields[2])
+}
+pushBack(lns, input)
+message("OK. detected ", length(samplesIDs), " samples:")
+sink(stderr())
+str(samplesIDs)
+sink()
 
 CHUNK_SIZE <- opts$`regressors-chunk-size`
 readRegressor <- function(con) {
@@ -471,17 +502,15 @@ for(outcomesBreak in outcomesBreaks) {
 
   OC <- outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ]
 
+  data <- merge(genotype, OC, by = "sampleID")
+
   if(!is.null(opts$prefilter)) {
 
-    ignore <- dbWriteTable(db, name = "gtinput", genotype)
-    ignore <- dbWriteTable(db, name = "outcinput", OC)
+    ignore <- dbWriteTable(db, name = "data", data)
+    ignore <- dbGetQuery(db, "create index datsnpid on data(SNPID)")
+    ignore <- dbGetQuery(db, "create index datreporterid on data(reporterID)")
     data <- dbGetQuery(db, prefilter.query)
-    ignore <- dbRemoveTable(db, "gtinput")
-    ignore <- dbRemoveTable(db, "outcinput")
-
-  } else {
-
-    data <- merge(genotype, OC, by = "sampleID")
+    ignore <- dbRemoveTable(db, "data")
 
   }
 

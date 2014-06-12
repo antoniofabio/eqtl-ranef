@@ -1,6 +1,17 @@
 F : 'data.frame':	30 obs. of  2 variables:
  $ sampleID: Factor w/ 30 levels "sample1","sample10",..: 1 12 23 25 26 27 28 29 30 2 ...
  $ F1      : num  0.114 0.622 0.609 0.623 0.861 ...
+R : 'data.frame':	30 obs. of  2 variables:
+ $ sampleID: Factor w/ 30 levels "sample1","sample10",..: 1 12 23 25 26 27 28 29 30 2 ...
+ $ R1      : Factor w/ 2 levels "1","2": 1 2 1 2 1 2 1 2 1 2 ...
+X : 'data.frame':	3000 obs. of  3 variables:
+ $ regressorID: Factor w/ 100 levels "regressor1","regressor10",..: 1 1 1 1 1 1 1 1 1 1 ...
+ $ sampleID   : Factor w/ 30 levels "sample1","sample10",..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ value      : num  0.166 0.483 0.13 0.307 0.125 ...
+Y : 'data.frame':	30 obs. of  3 variables:
+ $ outcomeID: Factor w/ 1 level "outcome1": 1 1 1 1 1 1 1 1 1 1 ...
+ $ sampleID : Factor w/ 30 levels "sample1","sample10",..: 1 2 3 4 5 6 7 8 9 10 ...
+ $ value    : num  -0.11 -0.694 -1.448 0.575 -1.024 ...
 option_list : List of 6
  $ :Formal class 'OptionParserOption' [package "optparse"] with 8 slots
  $ :Formal class 'OptionParserOption' [package "optparse"] with 8 slots
@@ -13,24 +24,13 @@ opts : List of 7
  $ outcomes  : num 1
  $ samples   : num 30
  $ fixef     : num 1
- $ output    : chr "/tmp/tmp.fYmWpJPRcs"
+ $ output    : chr "/tmp/tmp.QVS1ojjKVc"
  $ seed      : num 1234
  $ help      : logi FALSE
 outcomesIDs :  chr "outcome1"
 parser : Formal class 'OptionParser' [package "optparse"] with 4 slots
-R : 'data.frame':	30 obs. of  2 variables:
- $ sampleID: Factor w/ 30 levels "sample1","sample10",..: 1 12 23 25 26 27 28 29 30 2 ...
- $ R1      : Factor w/ 2 levels "1","2": 1 2 1 2 1 2 1 2 1 2 ...
 regressorsIDs :  chr [1:100] "regressor1" "regressor2" "regressor3" "regressor4" ...
 samplesIDs :  chr [1:30] "sample1" "sample2" "sample3" "sample4" "sample5" ...
-X : 'data.frame':	3000 obs. of  3 variables:
- $ regressorID: Factor w/ 100 levels "regressor1","regressor10",..: 1 1 1 1 1 1 1 1 1 1 ...
- $ sampleID   : Factor w/ 30 levels "sample1","sample10",..: 1 2 3 4 5 6 7 8 9 10 ...
- $ value      : num  0.166 0.483 0.13 0.307 0.125 ...
-Y : 'data.frame':	30 obs. of  3 variables:
- $ outcomeID: Factor w/ 1 level "outcome1": 1 1 1 1 1 1 1 1 1 1 ...
- $ sampleID : Factor w/ 30 levels "sample1","sample10",..: 1 2 3 4 5 6 7 8 9 10 ...
- $ value    : num  -0.11 -0.694 -1.448 0.575 -1.024 ...
 chromosomeLength = 100
   reporterID chromosome start end
 1   outcome1          1     1   2
@@ -43,12 +43,12 @@ chromosomeLength = 100
 6 regressor6          1        6
 analysis completed.
 List of 13
- $ regressors           : chr "/tmp/tmp.fYmWpJPRcs/regressors"
- $ outcomes             : chr "/tmp/tmp.fYmWpJPRcs/outcomes"
- $ fixef                : chr "/tmp/tmp.fYmWpJPRcs/fixef"
- $ ranef                : chr "/tmp/tmp.fYmWpJPRcs/ranef"
- $ genespos             : chr "/tmp/tmp.fYmWpJPRcs/genespos.sqlite"
- $ snpspos              : chr "/tmp/tmp.fYmWpJPRcs/snpspos.sqlite"
+ $ regressors           : chr "/tmp/tmp.QVS1ojjKVc/regressors"
+ $ outcomes             : chr "/tmp/tmp.QVS1ojjKVc/outcomes"
+ $ fixef                : chr "/tmp/tmp.QVS1ojjKVc/fixef"
+ $ ranef                : chr "/tmp/tmp.QVS1ojjKVc/ranef"
+ $ genespos             : chr "/tmp/tmp.QVS1ojjKVc/genespos.sqlite"
+ $ snpspos              : chr "/tmp/tmp.QVS1ojjKVc/snpspos.sqlite"
  $ cis-window           : num 5e+05
  $ trans-pvalue         : num 0.001
  $ cis-pvalue           : num 0.1
@@ -87,17 +87,17 @@ merging outcomes data...
 model formula:
 expression ~ alleleCopyNumber + F1 + (1 | R1)
 
-=> main loop started on Wed Apr 30 13:20:04 2014
+=> main loop started on Fri May 23 10:32:27 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Wed Apr 30 13:20:08 2014
+=> main loop completed on Fri May 23 10:33:27 2014
 
-100 regressors processed in 3.860734 secs
- reading input: 0.02064228 secs
- joining data: 0.01947212 secs
- processing: 3.018926 secs
- filtering output: 0.04732871 secs
- writing output: 0.004678488 secs
- garbage collection: 0.7122273 secs
+100 regressors processed in 59.29724 secs
+ reading input: 0.2795026 secs
+ joining data: 0.2675335 secs
+ processing: 48.04927 secs
+ filtering output: 0.5979574 secs
+ writing output: 0.08592057 secs
+ garbage collection: 9.855874 secs
 analysis completed.
