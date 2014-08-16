@@ -49,17 +49,21 @@ merging outcomes data...
 model formula:
 expression ~ alleleCopyNumber + F1 + F2 + F3 + (1 | R1)
 
-=> main loop started on Fri May 23 10:03:29 2014
+checking input data format...
+OK. detected 1 samples:
+ chr "subj1-measure1"
+
+=> main loop started on Sat Aug 16 07:03:50 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Fri May 23 10:03:32 2014
+=> main loop completed on Sat Aug 16 07:03:50 2014
 
-2 regressors processed in 3.529104 secs
- reading input: 0.04262066 secs
- joining data: 0.005215168 secs
- processing: 1.924706 secs
- filtering output: 0.1128097 secs
- writing output: 0.003149033 secs
- garbage collection: 1.213194 secs
+2 regressors processed in 0.4848604 secs
+ reading input: 0.003437281 secs
+ joining data: 0.002560377 secs
+ processing: 0.2611091 secs
+ filtering output: 0.01269317 secs
+ writing output: 0.001427889 secs
+ garbage collection: 0.1662664 secs
 analysis completed.
