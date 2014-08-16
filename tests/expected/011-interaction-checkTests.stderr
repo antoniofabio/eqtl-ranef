@@ -1,0 +1,2 @@
+Error: system(sprintf("./test-011.sh > %s/stdout 2> %s/stderr", tdir,  .... is not TRUE
+Execution halted
