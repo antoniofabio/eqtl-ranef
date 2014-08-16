@@ -1,9 +1,23 @@
-TESTS:=000 001 002 003 004 005 006 007 008 009 010 011 012 013
+TESTS:=$(wildcard test-*.sh)
+TESTS:=$(TESTS:test-%.sh=%)
+
+OBSERVED:=$(TESTS:%=observed/%.stdout)
+DIFFS:=$(TESTS:%=diffs/%)
+REPORTS:=$(TESTS:%=report-%)
+
+.DEFAULT: reports
+
+SHELL:="/bin/bash"
+
+# debugging support
+# OLD_SHELL := $(SHELL)
+# SHELL = $(warning [$@ ($^) ($?)])$(OLD_SHELL)
+
+print-%: ; @echo $* is $($*)
+# end debugging support
 
 TARGETS:=$(TESTS:%=observed/%.stdout) $(TESTS:%=diffs/%) \
   $(TESTS:%=report-%)
-
-SHELL:="/bin/bash"
 
 .PHONY: all reports clean
 
@@ -12,7 +26,7 @@ all: $(TARGETS)
 clean:
 	@rm -rf observed diffs
 
-reports: $(TESTS:%=report-%)
+reports: $(REPORTS)
 
 observed:
 	@mkdir -p observed
