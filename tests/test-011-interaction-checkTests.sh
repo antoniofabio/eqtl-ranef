@@ -62,7 +62,7 @@ expected.main <- ldply(fits.full, fit2tab)
 ##
 tdir <- tempdir()
 
-stopifnot(system(sprintf("./test-011.sh > %s/stdout 2> %s/stderr",
+stopifnot(system(sprintf("./test-010-interaction-categorical.sh > %s/stdout 2> %s/stderr",
                          tdir, tdir)) == 0)
 
 observed <- read.table(sprintf("%s/stdout", tdir),
@@ -109,3 +109,5 @@ with(compare.int, {
   stopifnot(max(abs(t.observed - t.expected)) < 1e-14)
   stopifnot(max(abs(-log10(pvalue.observed) - -log10(pvalue.expected))) < 1e-14)
 })
+
+writeLines("OK")
