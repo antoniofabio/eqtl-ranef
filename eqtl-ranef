@@ -93,7 +93,6 @@ suppressMessages({
   library(optparse)
   library(reshape)
   library(plyr)
-  library(RSQLite)
   library(lme4)
 })
 
@@ -140,8 +139,12 @@ with(opts, {
   if("prefilter" %in% names(opts)) {
     stopifnot(file.exists(prefilter))
   }
-  stopifnot(file.exists(genespos))
-  stopifnot(file.exists(snpspos))
+  if("genespos" %in% names(opts)) {
+    stopifnot(file.exists(genespos))
+  }
+  if("snpspos" %in% names(opts)) {
+    stopifnot(file.exists(snpspos))
+  }
   stopifnot(`cis-window` >= 0)
   stopifnot(`cis-pvalue` >= 0)
   stopifnot(`trans-pvalue` >= 0)
@@ -156,10 +159,6 @@ if(opts$cores > 1) suppressMessages({
 sink(stderr())
 str(opts)
 sink()
-
-db <- dbConnect(dbDriver("SQLite"), ":memory:")
-ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
-ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
 
 if(opts$regressors == "-") {
   input <- file("stdin", open = "r", raw = TRUE)
@@ -273,7 +272,24 @@ if(nrow(outcomes.c) == 0) {
   quit(save = "no", status = 0)
 }
 
-if(!is.null(opts$prefilter)) {
+##
+## PROCESS DATABASE SUPPORT OPTIONS
+##
+dbOpts <- c(sqlitePresent = suppressMessages(require(RSQLite)),
+            preFilter = !is.null(opts$prefilter),
+            postFilter = !is.null(opts$genespos) && !is.null(opts$snpspos))
+
+if(any(dbOpts[c('preFilter', 'postFilter')]) & !dbOpts['sqlitePresent']) {
+  message("RSQLite is not installed: disabling pre-post filtering options...")
+  dbOpts[c('preFilter', 'postFilter')] <- FALSE
+}
+
+if(any(dbOpts)) {
+  db <- dbConnect(dbDriver("SQLite"), ":memory:")
+}
+
+if(dbOpts['preFilter']) {
+
   ignore <- dbGetQuery(db, sprintf('attach "%s" as filterdb', opts$prefilter))
   OC.vnames <- setdiff(names(outcomes.c), c("reporterID", "sampleID"))
   OC.vnames <- paste(paste("data.", OC.vnames), collapse = ", ")
@@ -290,6 +306,50 @@ WHERE
 ", OC.vnames)
 
 }
+
+if(dbOpts['postFilter']) {
+
+  ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
+  ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
+
+  rsCols <- paste(paste0(paste("rs", sep = ".", SUMMARY$colnames), " as ", SUMMARY$colnames), collapse = ", ")
+  rsNorsCols <- paste(SUMMARY$colnames, collapse = ", ")
+
+  postFilteringQuery <- sprintf('
+  SELECT reporterID, SNPID, %s,
+         CASE WHEN
+          ((gtchrom == gxchrom)
+           AND
+           ((abs(gtpos - gxstart) <= %d)
+            OR (abs(gtpos - gxend) <= %d)
+            OR (gtpos >= gxstart AND gtpos <= gxend)))
+          THEN "cis" ELSE "trans"
+         END as isCis
+  FROM (
+   SELECT rs.reporterID as reporterID, rs.SNPID as SNPID,
+    gexpos.chromosome as gxchrom, gexpos.start as gxstart, gexpos.end as gxend,
+    gtpos.chromosome as gtchrom, gtpos.position as gtpos,
+    %s
+   FROM
+    results as rs
+    LEFT OUTER JOIN snpsdb.snpspos as gtpos ON rs.SNPID = gtpos.SNPID
+    LEFT OUTER JOIN genesdb.genespos as gexpos ON rs.reporterID = gexpos.reporterID
+  )
+  WHERE
+   isCis = "cis"
+   OR
+   pvalue <= %f
+',
+                            rsNorsCols,
+                            opts$`cis-window`, opts$`cis-window`,
+                            rsCols,
+                            opts$`trans-pvalue`)
+
+}
+
+##
+## END PROCESS DATABASE SUPPORT OPTIONS
+##
 
 outcomes.sizes <- table(outcomes.c$reporterID)
 
@@ -425,39 +485,6 @@ readRegressor <- function(con) {
 
 pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
 
-rsCols <- paste(paste0(paste("rs", sep = ".", SUMMARY$colnames), " as ", SUMMARY$colnames), collapse = ", ")
-rsNorsCols <- paste(SUMMARY$colnames, collapse = ", ")
-
-filteringQuery <- sprintf('
-  SELECT reporterID, SNPID, %s,
-         CASE WHEN
-          ((gtchrom == gxchrom)
-           AND
-           ((abs(gtpos - gxstart) <= %d)
-            OR (abs(gtpos - gxend) <= %d)
-            OR (gtpos >= gxstart AND gtpos <= gxend)))
-          THEN "cis" ELSE "trans"
-         END as isCis
-  FROM (
-   SELECT rs.reporterID as reporterID, rs.SNPID as SNPID,
-    gexpos.chromosome as gxchrom, gexpos.start as gxstart, gexpos.end as gxend,
-    gtpos.chromosome as gtchrom, gtpos.position as gtpos,
-    %s
-   FROM
-    results as rs
-    LEFT OUTER JOIN snpsdb.snpspos as gtpos ON rs.SNPID = gtpos.SNPID
-    LEFT OUTER JOIN genesdb.genespos as gexpos ON rs.reporterID = gexpos.reporterID
-  )
-  WHERE
-   isCis = "cis"
-   OR
-   pvalue <= %f
-',
-                          rsNorsCols,
-                          opts$`cis-window`, opts$`cis-window`,
-                          rsCols,
-                          opts$`trans-pvalue`)
-
 ##
 ## MAIN LOOP
 ##
@@ -515,7 +542,7 @@ for(outcomesBreak in outcomesBreaks) {
 
   data <- merge(genotype, OC, by = "sampleID")
 
-  if(!is.null(opts$prefilter)) {
+  if(dbOpts['preFilter']) {
 
     ignore <- dbWriteTable(db, name = "data", data)
     ignore <- dbGetQuery(db, "create index datsnpid on data(SNPID)")
@@ -542,10 +569,20 @@ for(outcomesBreak in outcomesBreaks) {
   ##
   ## tag cis and trans
   ##
+  if(dbOpts['postFilter']) {
 
-  ignore <- dbWriteTable(db, name = "results", value = results)
-  out <- dbGetQuery(db, filteringQuery)
-  ignore <- dbRemoveTable(db, "results")
+    ignore <- dbWriteTable(db, name = "results", value = results)
+    out <- dbGetQuery(db, postFilteringQuery)
+    ignore <- dbRemoveTable(db, "results")
+
+  } else {
+
+    out <- data.frame(results,
+                      isCis = "trans",
+                      check.names = FALSE,
+                      stringsAsFactors = FALSE)
+
+  }
 
   FILTERING_TICK <- Sys.time()
   FILTERING_TIME <- FILTERING_TIME + (FILTERING_TICK - PROCESSING_TICK)
