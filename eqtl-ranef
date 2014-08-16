@@ -162,7 +162,7 @@ ignore <- dbGetQuery(db, sprintf('attach "%s" as genesdb', opts$genespos))
 ignore <- dbGetQuery(db, sprintf('attach "%s" as snpsdb', opts$snpspos))
 
 if(opts$regressors == "-") {
-  input <- file("stdin")
+  input <- file("stdin", open = "r", raw = TRUE)
 } else {
   input <- file(opts$regressors, open = "r", raw = TRUE)
 }
@@ -343,6 +343,10 @@ samplesIDs <- c()
 lns <- c()
 repeat {
   line <- readLines(input, n = 1)
+  if(length(line) != 1) {
+    stop("error while scanning input data: expecting to read in 1 row, got ",
+         length(line), " instead")
+  }
   lns <- c(lns, line)
   fields <- strsplit(line, "\t")[[1]]
   if(length(fields) != 3) {
