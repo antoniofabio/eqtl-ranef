@@ -425,31 +425,38 @@ readRegressor <- function(con) {
 
 pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
 
-##
-## SQL BOOLEAN CONDITION FOR 'CIS' EFFECTS
-##
-cisCondition <- sprintf("((gtpos.chromosome == gexpos.chromosome)
-    AND
-    ((abs(gtpos.position - gexpos.start) <= %d)
-     OR (abs(gtpos.position - gexpos.end) <= %d)
-     OR (gtpos.position >= gexpos.start AND gtpos.position <= gexpos.end)))
-", opts$`cis-window`, opts$`cis-window`)
+rsCols <- paste(paste0(paste("rs", sep = ".", SUMMARY$colnames), " as ", SUMMARY$colnames), collapse = ", ")
+rsNorsCols <- paste(SUMMARY$colnames, collapse = ", ")
 
 filteringQuery <- sprintf('
-  SELECT gexpos.reporterID as reporterID, gtpos.SNPID as SNPID, %s,
-         CASE WHEN %s THEN "cis" ELSE "trans" END as isCis
-  FROM snpsdb.snpspos as gtpos, genesdb.genespos as gexpos, results as rs
-  WHERE gtpos.SNPID == rs.SNPID
-  AND gexpos.reporterID == rs.reporterID
-  AND
-   (
+  SELECT reporterID, SNPID, %s,
+         CASE WHEN
+          ((gtchrom == gxchrom)
+           AND
+           ((abs(gtpos - gxstart) <= %d)
+            OR (abs(gtpos - gxend) <= %d)
+            OR (gtpos >= gxstart AND gtpos <= gxend)))
+          THEN "cis" ELSE "trans"
+         END as isCis
+  FROM (
+   SELECT rs.reporterID as reporterID, rs.SNPID as SNPID,
+    gexpos.chromosome as gxchrom, gexpos.start as gxstart, gexpos.end as gxend,
+    gtpos.chromosome as gtchrom, gtpos.position as gtpos,
     %s
-    OR
-     rs.pvalue <= %f
-   )
+   FROM
+    results as rs
+    LEFT OUTER JOIN snpsdb.snpspos as gtpos ON rs.SNPID = gtpos.SNPID
+    LEFT OUTER JOIN genesdb.genespos as gexpos ON rs.reporterID = gexpos.reporterID
+  )
+  WHERE
+   isCis = "cis"
+   OR
+   pvalue <= %f
 ',
-                          paste(paste0(paste("rs", sep = ".", SUMMARY$colnames), " as ", SUMMARY$colnames), collapse = ", "),
-                          cisCondition, cisCondition, opts$`trans-pvalue`)
+                          rsNorsCols,
+                          opts$`cis-window`, opts$`cis-window`,
+                          rsCols,
+                          opts$`trans-pvalue`)
 
 ##
 ## MAIN LOOP
