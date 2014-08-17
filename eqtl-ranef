@@ -110,7 +110,8 @@ option_list <-
         make_option("--cis-pvalue", help = "cis p-value threshold [default: 0.1]", default = 0.1),
         make_option("--cores", help = "numbers of cores to use [default: 1]", default = 1),
         make_option("--max-regressions", help = "max number of regressions data to keep in memory at once [default: 10000]", default = 10000L),
-        make_option("--regressors-chunk-size", help = "regressors reading chunk size [default: 1000]", default = 1000L)
+        make_option("--regressors-chunk-size", help = "regressors reading chunk size [default: 1000]", default = 1000L),
+        make_option("--header", help = "print table header line [default: no header line printed]", default = FALSE, action = "store_true")
         )
 
 parser <- OptionParser(usage = "%prog [options]",
@@ -483,6 +484,13 @@ readRegressor <- function(con) {
 }
 
 pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
+
+HEADER <- c("reporterID", "regressorID", SUMMARY$colnames, "isCis")
+message("output columns: ", paste(shQuote(HEADER), collapse = ", "))
+
+if(opts$header) {
+  writeLines(paste(HEADER, collapse = "\t"))
+}
 
 ##
 ## MAIN LOOP

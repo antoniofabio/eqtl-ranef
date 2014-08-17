@@ -1,0 +1,71 @@
+List of 14
+ $ regressors           : chr "data/genotype.bySample.thin"
+ $ outcomes             : chr "data/expression.thin"
+ $ fixef                : chr "data/fixef.tab"
+ $ ranef                : chr "data/ranef.tab"
+ $ genespos             : chr "data/genespos.sqlite"
+ $ snpspos              : chr "data/snpspos.sqlite"
+ $ cis-window           : num 5e+05
+ $ trans-pvalue         : num 1
+ $ cis-pvalue           : num 1
+ $ cores                : num 1
+ $ max-regressions      : int 10000
+ $ regressors-chunk-size: int 1000
+ $ header               : logi TRUE
+ $ help                 : logi FALSE
+reading outcomes data...
+done:
+'data.frame':	14 obs. of  3 variables:
+ $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
+ $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
+reading fixed effects data...
+done:
+'data.frame':	7 obs. of  4 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ F1      : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2
+ $ F2      : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1
+ $ F3      : int  24 24 35 35 51 18 77
+reading random effects data...
+done:
+'data.frame':	7 obs. of  2 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+merging covariates data...
+'data.frame':	7 obs. of  5 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ F1      : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2
+ $ F2      : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1
+ $ F3      : int  24 24 35 35 51 18 77
+ $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+merging outcomes data...
+'data.frame':	14 obs. of  7 variables:
+ $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
+ $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
+ $ F1        : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2 2 1 2 ...
+ $ F2        : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1 2 2 1 ...
+ $ F3        : int  24 24 35 35 51 18 77 24 24 35 ...
+ $ R1        : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5 1 1 2 ...
+model formula:
+expression ~ alleleCopyNumber + F1 + F2 + F3 + (1 | R1)
+
+checking input data format...
+OK. detected 1 samples:
+ chr "subj1-measure1"
+output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'isCis'
+
+=> main loop started on Sun Aug 17 03:20:38 2014
+
+no more lines in input: terminating...
+
+=> main loop completed on Sun Aug 17 03:20:39 2014
+
+2 regressors processed in 0.4117372 secs
+ reading input: 0.003587484 secs
+ joining data: 0.002447605 secs
+ processing: 0.174402 secs
+ filtering output: 0.01248145 secs
+ writing output: 0.001438141 secs
+ garbage collection: 0.1788573 secs
+analysis completed.
