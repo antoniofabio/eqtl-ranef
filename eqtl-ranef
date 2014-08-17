@@ -378,8 +378,8 @@ splitItemsInto <- function(items.sizes, numPerPiece) {
 ##
 ## build formula
 ##
-formula.str <- sprintf("expression ~ alleleCopyNumber + %s",
-                       paste(as.vector(formula.components), collapse = " + "))
+formula.str <- sprintf("expression ~ %s",
+                       paste(c("alleleCopyNumber", as.vector(formula.components)), collapse = " + "))
 formula <- as.formula(formula.str)
 message("model formula:")
 sink(stderr())
