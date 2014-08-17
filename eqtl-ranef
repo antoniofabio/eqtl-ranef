@@ -488,13 +488,18 @@ pvalue.max <- max(opts$`cis-pvalue`, opts$`trans-pvalue`)
 HEADER <- c("reporterID", "regressorID", SUMMARY$colnames, "isCis")
 message("output columns: ", paste(shQuote(HEADER), collapse = ", "))
 
-if(opts$header) {
-  writeLines(paste(HEADER, collapse = "\t"))
-}
+message("session info:")
+sink(stderr())
+sessionInfo()
+sink()
 
 ##
 ## MAIN LOOP
 ##
+
+if(opts$header) {
+  writeLines(paste(HEADER, collapse = "\t"))
+}
 
 TIME_INTERVAL <- as.difftime(15, units = "mins")
 ORIG_TIME <- START_TIME <- Sys.time()
