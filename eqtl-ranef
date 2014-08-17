@@ -79,7 +79,6 @@ SUMMARIES <-
 
             subset(ans, pvalue <= pvalue.max)
           }, error = function(e) {
-            stop(e)
             return(NULL)
           })
         },
