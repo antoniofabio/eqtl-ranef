@@ -508,6 +508,7 @@ SNPs_COUNTER <- 0
 ## split up elapsed time into its components:
 READING_TIME <- 0
 JOINING_TIME <- 0
+PREFILTERING_TIME <- 0
 PROCESSING_TIME <- 0
 FILTERING_TIME <- 0
 WRITING_TIME <- 0
@@ -517,6 +518,9 @@ printTimingInfo <- function() {
   message(SNPs_COUNTER, " regressors processed in ", format(CUR_TIME - ORIG_TIME))
   message(" reading input: ", format(READING_TIME))
   message(" joining data: ", format(JOINING_TIME))
+  if(dbOpts['preFilter']) {
+    message(" prefiltering data: ", format(PREFILTERING_TIME))
+  }
   message(" processing: ", format(PROCESSING_TIME))
   message(" filtering output: ", format(FILTERING_TIME))
   message(" writing output: ", format(WRITING_TIME))
@@ -554,6 +558,11 @@ for(outcomesBreak in outcomesBreaks) {
 
   data <- merge(genotype, OC, by = "sampleID")
 
+  outcomesRowCounter <- outcomesBreak
+
+  JOINING_TICK <- Sys.time()
+  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
+
   if(dbOpts['preFilter']) {
 
     ignore <- dbWriteTable(db, name = "data", data)
@@ -564,10 +573,8 @@ for(outcomesBreak in outcomesBreaks) {
 
   }
 
-  outcomesRowCounter <- outcomesBreak
-
-  JOINING_TICK <- Sys.time()
-  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
+  PREFILTERING_TICK <- Sys.time()
+  PREFILTERING_TIME <- PREFILTERING_TIME + (PREFILTERING_TICK - JOINING_TICK)
 
   results <- ddply(data, .(reporterID, SNPID), SUMMARY$fitter, .parallel = opts$cores > 1)
 
