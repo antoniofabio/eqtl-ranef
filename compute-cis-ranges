@@ -114,7 +114,7 @@ repeat {
 
     if(gtPos$chr != genePos$chr) {
       ## message("different chromosome")
-      if(somethingMatched) {
+      if(somethingMatchedCurrentGene) {
         break
       } else {
         snpStart <- snpEnd - 1L
@@ -134,12 +134,12 @@ repeat {
       break
     }
 
-    somethingMatched <- TRUE
+    somethingMatchedCurrentGene <- TRUE
     snpEnd <- snpEnd + 1L
 
   }
 
-  if(somethingMatched) {
+  if(somethingMatchedCurrentGene) {
     gex.ranges[geneIdx, "start"] <- snpStart + 1L
     gex.ranges[geneIdx, "end"] <- snpEnd + 1L
   }
