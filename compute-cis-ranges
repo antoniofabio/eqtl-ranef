@@ -97,7 +97,7 @@ repeat {
 
   ## message("geneIdx = ", geneIdx)
 
-  if((snpStart >= nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
+  if((snpStart >= nrow(gt.pos)) || (snpEnd > nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
     ## message("end of file.")
     break
   }
