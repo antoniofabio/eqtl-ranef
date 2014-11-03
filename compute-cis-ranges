@@ -145,7 +145,7 @@ repeat {
 
   if(somethingMatchedCurrentGene) {
     gex.ranges[geneIdx, "start"] <- snpStart + 1L
-    gex.ranges[geneIdx, "end"] <- snpEnd + 1L
+    gex.ranges[geneIdx, "end"] <- snpEnd - 1L
   }
   if(gtPos$chr != genePos$chr) {
     snpStart <- snpEnd - 1L    
