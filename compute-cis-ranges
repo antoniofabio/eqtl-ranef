@@ -86,10 +86,10 @@ ORIG_TIME <- START_TIME <- Sys.time()
 
 printTimingInfo <- function() {
   totalElapsedTime <- CUR_TIME - ORIG_TIME
-  avgSpeed <- geneIdx / as.numeric(totalElapsedTime, units = "hours")
+  avgSpeed <- (geneIdx - 1) / as.numeric(totalElapsedTime, units = "hours")
   remainingTime <- as.difftime((nrow(gex.pos) - geneIdx) / avgSpeed, units = "hours")
-  message(geneIdx, " out of ", nrow(gex.pos), " genes processed in ", format(totalElapsedTime),
-          "; remaining: ", format(remainingTime))
+  message(geneIdx - 1L, " out of ", nrow(gex.pos), " genes processed in ", format(totalElapsedTime),
+          if(geneIdx <= nrow(gex.pos)) paste0("; remaining: ", format(remainingTime)) else "")
 }
 
 repeat {
