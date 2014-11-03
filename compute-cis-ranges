@@ -1,0 +1,170 @@
+#!/usr/bin/env Rscript
+
+options(stringsAsFactors = FALSE)
+
+suppressMessages({
+  library(optparse)
+  library(RSQLite)
+})
+
+option_list <-
+    list(
+        make_option("--genespos", help = "genes positions sqlite file [default: genespos.sqlite]", default = "genespos.sqlite"),
+        make_option("--snpspos", help = "snps positions sqlite file [default: snpspos.sqlite]", default = "snpspos.sqlite"),
+        make_option("--sorted-snpspos", help = "write sorted genotype annotation to this tab-delimited file (empty string to suppress) [default: 'snpspos.sorted.tab']",
+                    default = 'snpspos.sorted.tab'),
+        make_option("--cis-window", help = "cis window size [default: 50kb]", default = 50000)
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "computes cis ranges for each gene. Writes output on stdout",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+message("options:")
+sink(stderr())
+str(opts)
+sink()
+
+stopifnot(file.exists(opts$genespos))
+stopifnot(file.exists(opts$snpspos))
+
+message("reading (sorted) genes annotation data...")
+db <- dbConnect(dbDriver("SQLite"), opts$genespos)
+gex.pos <- dbGetQuery(db, "
+ SELECT reporterID, chromosome as chr, start, end
+ FROM genespos
+ ORDER BY chr, start, end
+")
+dbDisconnect(db)
+sink(stderr())
+str(gex.pos)
+sink()
+
+message("reading (sorted) genotype annotation data...")
+db <- dbConnect(dbDriver("SQLite"), opts$snpspos)
+gt.pos <- dbGetQuery(db, "
+ SELECT SNPID, chromosome as chr, position as pos
+ FROM snpspos
+ ORDER BY chr, position
+")
+dbDisconnect(db)
+sink(stderr())
+str(gt.pos)
+sink()
+
+if(opts$`sorted-snpspos` != "") {
+  message("dumping sorted genotype data to tab-delimited file ", shQuote(opts$`sorted-snpspos`))
+  write.table(gt.pos,
+              file = opts$`sorted-snpspos`,
+              row.names = FALSE,
+              col.names = FALSE,
+              sep = "\t",
+              quote = FALSE)
+}
+
+##
+## MAIN LOOP
+##
+message("computing cis ranges...")
+
+geneIdx <- 1L
+snpStart <- 0L
+snpEnd <- 1L
+CIS <- opts$`cis-window`
+
+gex.ranges <- data.frame(gex.pos[, 1, drop = FALSE],
+                         start = NA_real_,
+                         end = NA_real_)
+
+TIME_INTERVAL <- as.difftime(1, units = "mins")
+ORIG_TIME <- START_TIME <- Sys.time()
+
+printTimingInfo <- function() {
+  totalElapsedTime <- CUR_TIME - ORIG_TIME
+  avgSpeed <- geneIdx / as.numeric(totalElapsedTime, units = "hours")
+  remainingTime <- as.difftime((nrow(gex.pos) - geneIdx) / avgSpeed, units = "hours")
+  message(geneIdx, " out of ", nrow(gex.pos), " genes processed in ", format(totalElapsedTime),
+          "; remaining: ", format(remainingTime))
+}
+
+repeat {
+  ## FOR EACH GENE
+
+  ## message("geneIdx = ", geneIdx)
+
+  if((snpStart >= nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
+    ## message("end of file.")
+    break
+  }
+  genePos <- gex.pos[geneIdx, ]
+  somethingMatchedCurrentGene <- FALSE
+
+  ## message("snpStart = ", snpStart)
+  repeat {
+    ## FOR EACH SNP
+
+    ## message("snpEnd = ", snpEnd)
+
+    if(snpEnd > nrow(gt.pos)) {
+      ## message("end of file.")
+      break
+    }
+    gtPos <- gt.pos[snpEnd, ]
+
+    if(gtPos$chr != genePos$chr) {
+      ## message("different chromosome")
+      if(somethingMatched) {
+        break
+      } else {
+        snpStart <- snpEnd - 1L
+        next
+      }
+    }
+
+    if(gtPos$pos < (genePos$start - CIS)) {
+      ## message("earlier")
+      snpStart <- snpEnd
+      snpEnd <- snpStart + 1L
+      next
+    }
+
+    if(gtPos$pos > (genePos$end + CIS)) {
+      ## message("later")
+      break
+    }
+
+    somethingMatched <- TRUE
+    snpEnd <- snpEnd + 1L
+
+  }
+
+  if(somethingMatched) {
+    gex.ranges[geneIdx, "start"] <- snpStart + 1L
+    gex.ranges[geneIdx, "end"] <- snpEnd + 1L
+  }
+  if(gtPos$chr != genePos$chr) {
+    snpStart <- snpEnd - 1L    
+  }
+
+  snpEnd <- snpStart + 1L
+  geneIdx <- geneIdx + 1L
+
+  CUR_TIME <- Sys.time()
+  ELAPSED <- CUR_TIME - START_TIME
+  if(ELAPSED > TIME_INTERVAL) {
+    START_TIME <- CUR_TIME
+    printTimingInfo()
+  }
+
+}
+
+printTimingInfo()
+
+message("writing results on stdout...")
+gex.ranges <- na.omit(gex.ranges)
+write.table(gex.ranges,
+            sep = "\t", row.names = FALSE, col.names = FALSE,
+            quote = FALSE)
+
+message("analysis completed.")
