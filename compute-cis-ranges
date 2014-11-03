@@ -121,7 +121,8 @@ repeat {
       if(somethingMatchedCurrentGene) {
         break
       } else {
-        snpStart <- snpEnd - 1L
+        snpStart <- snpEnd
+        snpEnd <- snpEnd + 1L
         next
       }
     }
@@ -129,7 +130,7 @@ repeat {
     if(gtPos$pos < (genePos$start - CIS)) {
       ## message("earlier")
       snpStart <- snpEnd
-      snpEnd <- snpStart + 1L
+      snpEnd <- snpEnd + 1L
       next
     }
 
@@ -146,9 +147,9 @@ repeat {
   if(somethingMatchedCurrentGene) {
     gex.ranges[geneIdx, "start"] <- snpStart + 1L
     gex.ranges[geneIdx, "end"] <- snpEnd - 1L
-  }
-  if(gtPos$chr != genePos$chr) {
-    snpStart <- snpEnd - 1L    
+    if(gtPos$chr != genePos$chr) {
+      snpStart <- snpEnd - 1L
+    }
   }
 
   snpEnd <- snpStart + 1L
