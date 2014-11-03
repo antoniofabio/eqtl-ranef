@@ -36,7 +36,7 @@ gex.pos <- dbGetQuery(db, "
  FROM genespos
  ORDER BY chr, start, end
 ")
-dbDisconnect(db)
+ignore <- dbDisconnect(db)
 sink(stderr())
 str(gex.pos)
 sink()
@@ -48,7 +48,7 @@ gt.pos <- dbGetQuery(db, "
  FROM snpspos
  ORDER BY chr, position
 ")
-dbDisconnect(db)
+ignore <- dbDisconnect(db)
 sink(stderr())
 str(gt.pos)
 sink()
