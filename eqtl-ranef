@@ -509,6 +509,7 @@ SNPs_COUNTER <- 0
 
 ## split up elapsed time into its components:
 READING_TIME <- 0
+PAIRS_TIME <- 0
 JOINING_TIME <- 0
 PREFILTERING_TIME <- 0
 PROCESSING_TIME <- 0
@@ -519,9 +520,12 @@ GC_TIME <- 0 ## garbage collection
 printTimingInfo <- function() {
   message(SNPs_COUNTER, " regressors processed in ", format(CUR_TIME - ORIG_TIME))
   message(" reading input: ", format(READING_TIME))
-  message(" joining data: ", format(JOINING_TIME))
   if(dbOpts['preFilter']) {
-    message(" prefiltering data: ", format(PREFILTERING_TIME))
+    message(" extracting prefiltering pairs: ", format(PAIRS_TIME))
+  }
+  message(" joining input data: ", format(JOINING_TIME))
+  if(dbOpts['preFilter']) {
+    message(" prefiltering input: ", format(PREFILTERING_TIME))
   }
   message(" processing: ", format(PROCESSING_TIME))
   message(" filtering output: ", format(FILTERING_TIME))
@@ -558,20 +562,41 @@ for(outcomesBreak in outcomesBreaks) {
 
   OC <- outcomes.c[seq(outcomesRowCounter + 1, outcomesBreak), ]
 
+  if(dbOpts['preFilter']) {
+
+    REP.IDs <- unique(OC[, "reporterID", drop = FALSE])
+    SNP.IDs <- unique(genotype[, "SNPID", drop = FALSE])
+    ignore <- dbWriteTable(db, name = "repIDs", REP.IDs)
+    ignore <- dbWriteTable(db, name = "snpIDs", SNP.IDs)
+    ignore <- dbGetQuery(db, "create index datsnpid on snpIDs(SNPID)")
+    ignore <- dbGetQuery(db, "create index datreporterid on repIDs(reporterID)")
+    pairs <- dbGetQuery(db, "select fp.SNPID as SNPID, fp.reporterID as reporterID
+from filterdb.pairs as fp, repIDs, snpIDs
+where fp.SNPID = snpIDs.SNPID
+and fp.reporterID = repIDs.reporterID")
+    ignore <- dbRemoveTable(db, "repIDs")
+    ignore <- dbRemoveTable(db, "snpIDs")
+
+  }
+
+  PAIRS_TICK <- Sys.time()
+  PAIRS_TIME <- PAIRS_TIME + (PAIRS_TICK - BUCKING_TICK)
+
   data <- merge(genotype, OC, by = "sampleID")
 
   outcomesRowCounter <- outcomesBreak
 
   JOINING_TICK <- Sys.time()
-  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - BUCKING_TICK)
+  JOINING_TIME <- JOINING_TIME + (JOINING_TICK - PAIRS_TICK)
 
   if(dbOpts['preFilter']) {
 
-    ignore <- dbWriteTable(db, name = "data", data)
-    ignore <- dbGetQuery(db, "create index datsnpid on data(SNPID)")
-    ignore <- dbGetQuery(db, "create index datreporterid on data(reporterID)")
-    data <- dbGetQuery(db, prefilter.query)
-    ignore <- dbRemoveTable(db, "data")
+    ## NOTE: contrary to a 'merge', this DOES NOT CHANGE the ordering of the data.
+    ## As the ordering of the data might slightly affect the output,
+    ## better keep it the same, no matter which prefiltering we want to apply
+    data <- subset(data,
+                   paste0(SNPID, ":::", reporterID) %in%
+                   with(pairs, paste0(SNPID, ":::", reporterID)))
 
   }
 
