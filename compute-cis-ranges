@@ -92,26 +92,29 @@ printTimingInfo <- function() {
           if(geneIdx <= nrow(gex.pos)) paste0("; remaining: ", format(remainingTime)) else "")
 }
 
-repeat {
-  ## FOR EACH GENE
+## DEBUG <- message
+DEBUG <- function(...) {}
 
-  ## message("geneIdx = ", geneIdx)
+## FOR EACH GENE
+repeat {
+
+  DEBUG("geneIdx = ", geneIdx)
 
   if((snpStart >= nrow(gt.pos)) || (snpEnd > nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
-    ## message("end of file.")
+    DEBUG("end of file.")
     break
   }
   genePos <- gex.pos[geneIdx, ]
   somethingMatchedCurrentGene <- FALSE
 
-  ## message("snpStart = ", snpStart)
+  DEBUG("snpStart = ", snpStart)
+  ## FOR EACH SNP
   repeat {
-    ## FOR EACH SNP
 
-    ## message("snpEnd = ", snpEnd)
+    DEBUG("snpEnd = ", snpEnd)
 
     if(snpEnd > nrow(gt.pos)) {
-      ## message("end of file.")
+      DEBUG("end of file.")
       break
     }
     gtPos <- gt.pos[snpEnd, ]
@@ -128,14 +131,14 @@ repeat {
     }
 
     if(gtPos$pos < (genePos$start - CIS)) {
-      ## message("earlier")
+      DEBUG("earlier")
       snpStart <- snpEnd
       snpEnd <- snpEnd + 1L
       next
     }
 
     if(gtPos$pos > (genePos$end + CIS)) {
-      ## message("later")
+      DEBUG("later")
       break
     }
 
