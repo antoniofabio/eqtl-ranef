@@ -78,17 +78,111 @@ loaded via a namespace (and not attached):
 [1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
 [5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
 
-=> main loop started on Sun Aug 17 04:10:31 2014
+=> main loop started on Mon Nov  3 04:50:52 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Sun Aug 17 04:10:32 2014
+=> main loop completed on Mon Nov  3 04:50:52 2014
 
-2 regressors processed in 0.5604632 secs
- reading input: 0.005700588 secs
- joining data: 0.02811718 secs
- processing: 0.203243 secs
- filtering output: 0.01872969 secs
- writing output: 0.002446651 secs
- garbage collection: 0.2597415 secs
+2 regressors processed in 0.5593157 secs
+ reading input: 0.005565643 secs
+ joining data: 0.003953218 secs
+ prefiltering data: 0.02450109 secs
+ processing: 0.2258441 secs
+ filtering output: 0.01851106 secs
+ writing output: 0.002370834 secs
+ garbage collection: 0.259093 secs
+analysis completed.
+List of 14
+ $ regressors           : chr "data/genotype.bySample.thin"
+ $ outcomes             : chr "data/expression.thin"
+ $ fixef                : chr "data/fixef.tab"
+ $ ranef                : chr "data/ranef.tab"
+ $ genespos             : chr "data/genespos.sqlite"
+ $ snpspos              : chr "data/snpspos.sqlite"
+ $ cis-window           : num 5e+05
+ $ trans-pvalue         : num 1
+ $ cis-pvalue           : num 1
+ $ cores                : num 1
+ $ max-regressions      : int 10000
+ $ regressors-chunk-size: int 1000
+ $ header               : logi FALSE
+ $ help                 : logi FALSE
+reading outcomes data...
+done:
+'data.frame':	14 obs. of  3 variables:
+ $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
+ $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
+reading fixed effects data...
+done:
+'data.frame':	7 obs. of  4 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ F1      : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2
+ $ F2      : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1
+ $ F3      : int  24 24 35 35 51 18 77
+reading random effects data...
+done:
+'data.frame':	7 obs. of  2 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+merging covariates data...
+'data.frame':	7 obs. of  5 variables:
+ $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ F1      : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2
+ $ F2      : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1
+ $ F3      : int  24 24 35 35 51 18 77
+ $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+merging outcomes data...
+'data.frame':	14 obs. of  7 variables:
+ $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
+ $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
+ $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
+ $ F1        : Factor w/ 2 levels "after","before": 2 1 2 1 2 1 2 2 1 2 ...
+ $ F2        : Factor w/ 2 levels "female","male": 2 2 1 1 2 1 1 2 2 1 ...
+ $ F3        : int  24 24 35 35 51 18 77 24 24 35 ...
+ $ R1        : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5 1 1 2 ...
+model formula:
+expression ~ alleleCopyNumber + F1 + F2 + F3 + (1 | R1)
+
+checking input data format...
+OK. detected 1 samples:
+ chr "subj1-measure1"
+output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'isCis'
+session info:
+R version 3.1.1 Patched (2014-08-16 r66408)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] methods   stats     graphics  grDevices utils     datasets  base     
+
+other attached packages:
+[1] RSQLite_0.11.4 DBI_0.2-7      lme4_1.1-7     Rcpp_0.11.2    Matrix_1.1-4  
+[6] plyr_1.8.1     reshape_0.8.5  optparse_1.2.0
+
+loaded via a namespace (and not attached):
+[1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
+[5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
+
+=> main loop started on Mon Nov  3 04:50:57 2014
+
+no more lines in input: terminating...
+
+=> main loop completed on Mon Nov  3 04:50:58 2014
+
+2 regressors processed in 0.7848785 secs
+ reading input: 0.005565166 secs
+ joining data: 0.004021883 secs
+ processing: 0.3195972 secs
+ filtering output: 0.155406 secs
+ writing output: 0.002385616 secs
+ garbage collection: 0.2536879 secs
 analysis completed.
