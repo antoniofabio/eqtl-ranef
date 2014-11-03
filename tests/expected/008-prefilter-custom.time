@@ -1,21 +1,21 @@
 	Command being timed: "./test-008-prefilter-custom.sh"
-	User time (seconds): 43.24
-	System time (seconds): 0.29
+	User time (seconds): 19.41
+	System time (seconds): 0.26
 	Percent of CPU this job got: 100%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:43.48
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:19.64
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 759312
+	Maximum resident set size (kbytes): 552128
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 1
-	Minor (reclaiming a frame) page faults: 120976
-	Voluntary context switches: 212
-	Involuntary context switches: 4340
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 110740
+	Voluntary context switches: 144
+	Involuntary context switches: 2407
 	Swaps: 0
-	File system inputs: 72
-	File system outputs: 3184
+	File system inputs: 0
+	File system outputs: 496
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0

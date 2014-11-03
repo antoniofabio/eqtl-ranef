@@ -1,17 +1,17 @@
 reading input data...
 done:
-'data.frame':	100 obs. of  2 variables:
- $ SNPID     : chr  "regressor1" "regressor10" "regressor100" "regressor11" ...
- $ reporterID: chr  "outcome1" "outcome10" "outcome100" "outcome11" ...
+'data.frame':	10 obs. of  2 variables:
+ $ SNPID     : chr  "regressor1" "regressor10" "regressor2" "regressor3" ...
+ $ reporterID: chr  "outcome1" "outcome10" "outcome2" "outcome3" ...
 completed.
 List of 15
- $ regressors           : chr "/tmp/tmp.2PJLZ30tHG/regressors"
- $ outcomes             : chr "/tmp/tmp.2PJLZ30tHG/outcomes"
- $ fixef                : chr "/tmp/tmp.2PJLZ30tHG/fixef"
- $ ranef                : chr "/tmp/tmp.2PJLZ30tHG/ranef"
- $ prefilter            : chr "/tmp/tmp.2PJLZ30tHG/prefilter.sqlite"
- $ genespos             : chr "/tmp/tmp.2PJLZ30tHG/genespos.sqlite"
- $ snpspos              : chr "/tmp/tmp.2PJLZ30tHG/snpspos.sqlite"
+ $ regressors           : chr "/tmp/tmp.GuOmCd4luL/regressors"
+ $ outcomes             : chr "/tmp/tmp.GuOmCd4luL/outcomes"
+ $ fixef                : chr "/tmp/tmp.GuOmCd4luL/fixef"
+ $ ranef                : chr "/tmp/tmp.GuOmCd4luL/ranef"
+ $ prefilter            : chr "/tmp/tmp.GuOmCd4luL/prefilter.sqlite"
+ $ genespos             : chr "/tmp/tmp.GuOmCd4luL/genespos.sqlite"
+ $ snpspos              : chr "/tmp/tmp.GuOmCd4luL/snpspos.sqlite"
  $ cis-window           : num 5e+05
  $ trans-pvalue         : num 1
  $ cis-pvalue           : num 1
@@ -22,10 +22,10 @@ List of 15
  $ help                 : logi FALSE
 reading outcomes data...
 done:
-'data.frame':	20000 obs. of  3 variables:
+'data.frame':	2000 obs. of  3 variables:
  $ reporterID: chr  "outcome1" "outcome1" "outcome1" "outcome1" ...
  $ sampleID  : chr  "sample1" "sample10" "sample100" "sample101" ...
- $ expression: num  0.415 -1.205 -1.817 1.534 -0.391 ...
+ $ expression: num  0.415 -0.538 0.303 0.113 -0.284 ...
 reading fixed effects data...
 done:
 'data.frame':	200 obs. of  2 variables:
@@ -42,10 +42,10 @@ merging covariates data...
  $ F1      : num  0.1137 0.5143 0.7421 0.0355 0.5651 ...
  $ R1      : int  1 2 2 1 2 1 2 1 2 1 ...
 merging outcomes data...
-'data.frame':	20000 obs. of  5 variables:
+'data.frame':	2000 obs. of  5 variables:
  $ sampleID  : chr  "sample1" "sample10" "sample100" "sample101" ...
  $ reporterID: chr  "outcome1" "outcome1" "outcome1" "outcome1" ...
- $ expression: num  0.415 -1.205 -1.817 1.534 -0.391 ...
+ $ expression: num  0.415 -0.538 0.303 0.113 -0.284 ...
  $ F1        : num  0.1137 0.5143 0.7421 0.0355 0.5651 ...
  $ R1        : int  1 2 2 1 2 1 2 1 2 1 ...
 model formula:
@@ -78,17 +78,105 @@ loaded via a namespace (and not attached):
 [1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
 [5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
 
-=> main loop started on Sun Aug 17 04:10:39 2014
+=> main loop started on Mon Nov  3 04:10:09 2014
 
 no more lines in input: terminating...
 
-=> main loop completed on Sun Aug 17 04:11:15 2014
+=> main loop completed on Mon Nov  3 04:10:10 2014
 
-100 regressors processed in 36.46874 secs
- reading input: 0.4450986 secs
- joining data: 25.06143 secs
- processing: 6.865891 secs
- filtering output: 0.2522111 secs
- writing output: 0.02354288 secs
- garbage collection: 3.741838 secs
+10 regressors processed in 1.717657 secs
+ reading input: 0.0459671 secs
+ joining data: 0.09998822 secs
+ prefiltering data: 0.1608789 secs
+ processing: 0.9632459 secs
+ filtering output: 0.03917289 secs
+ writing output: 0.004123211 secs
+ garbage collection: 0.5171971 secs
+analysis completed.
+List of 14
+ $ regressors           : chr "/tmp/tmp.GuOmCd4luL/regressors"
+ $ outcomes             : chr "/tmp/tmp.GuOmCd4luL/outcomes"
+ $ fixef                : chr "/tmp/tmp.GuOmCd4luL/fixef"
+ $ ranef                : chr "/tmp/tmp.GuOmCd4luL/ranef"
+ $ genespos             : chr "/tmp/tmp.GuOmCd4luL/genespos.sqlite"
+ $ snpspos              : chr "/tmp/tmp.GuOmCd4luL/snpspos.sqlite"
+ $ cis-window           : num 5e+05
+ $ trans-pvalue         : num 1
+ $ cis-pvalue           : num 1
+ $ cores                : num 1
+ $ max-regressions      : int 10000
+ $ regressors-chunk-size: int 1000
+ $ header               : logi FALSE
+ $ help                 : logi FALSE
+reading outcomes data...
+done:
+'data.frame':	2000 obs. of  3 variables:
+ $ reporterID: chr  "outcome1" "outcome1" "outcome1" "outcome1" ...
+ $ sampleID  : chr  "sample1" "sample10" "sample100" "sample101" ...
+ $ expression: num  0.415 -0.538 0.303 0.113 -0.284 ...
+reading fixed effects data...
+done:
+'data.frame':	200 obs. of  2 variables:
+ $ sampleID: chr  "sample1" "sample2" "sample3" "sample4" ...
+ $ F1      : num  0.114 0.622 0.609 0.623 0.861 ...
+reading random effects data...
+done:
+'data.frame':	200 obs. of  2 variables:
+ $ sampleID: chr  "sample1" "sample2" "sample3" "sample4" ...
+ $ R1      : int  1 2 1 2 1 2 1 2 1 2 ...
+merging covariates data...
+'data.frame':	200 obs. of  3 variables:
+ $ sampleID: chr  "sample1" "sample10" "sample100" "sample101" ...
+ $ F1      : num  0.1137 0.5143 0.7421 0.0355 0.5651 ...
+ $ R1      : int  1 2 2 1 2 1 2 1 2 1 ...
+merging outcomes data...
+'data.frame':	2000 obs. of  5 variables:
+ $ sampleID  : chr  "sample1" "sample10" "sample100" "sample101" ...
+ $ reporterID: chr  "outcome1" "outcome1" "outcome1" "outcome1" ...
+ $ expression: num  0.415 -0.538 0.303 0.113 -0.284 ...
+ $ F1        : num  0.1137 0.5143 0.7421 0.0355 0.5651 ...
+ $ R1        : int  1 2 2 1 2 1 2 1 2 1 ...
+model formula:
+expression ~ alleleCopyNumber + F1 + (1 | R1)
+
+checking input data format...
+OK. detected 200 samples:
+ chr [1:200] "sample1" "sample10" "sample100" "sample101" ...
+output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'isCis'
+session info:
+R version 3.1.1 Patched (2014-08-16 r66408)
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] methods   stats     graphics  grDevices utils     datasets  base     
+
+other attached packages:
+[1] RSQLite_0.11.4 DBI_0.2-7      lme4_1.1-7     Rcpp_0.11.2    Matrix_1.1-4  
+[6] plyr_1.8.1     reshape_0.8.5  optparse_1.2.0
+
+loaded via a namespace (and not attached):
+[1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
+[5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
+
+=> main loop started on Mon Nov  3 04:10:15 2014
+
+no more lines in input: terminating...
+
+=> main loop completed on Mon Nov  3 04:10:22 2014
+
+10 regressors processed in 6.737104 secs
+ reading input: 0.04573417 secs
+ joining data: 0.09943604 secs
+ processing: 5.993867 secs
+ filtering output: 0.03980947 secs
+ writing output: 0.004727602 secs
+ garbage collection: 0.5062075 secs
 analysis completed.

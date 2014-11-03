@@ -3,7 +3,7 @@
 set -e
 set -u
 
-N=100
+N=10
 
 TMPD=`mktemp -d`
 trap "rm -rf ${TMPD}" EXIT
@@ -25,4 +25,35 @@ paste <(cut -f 1 ${TMPD}/regressors | sort | uniq) <(cut -f 1 ${TMPD}/outcomes |
   --snpspos=${TMPD}/snpspos.sqlite \
   --cores=1 \
   --cis-pvalue=1 --trans-pvalue=1 \
-  | sort
+  | sort \
+  > ${TMPD}/with-prefiltering
+
+../eqtl-ranef \
+  --regressors=${TMPD}/regressors \
+  --outcomes=${TMPD}/outcomes \
+  --fixef=${TMPD}/fixef \
+  --ranef=${TMPD}/ranef \
+  --genespos=${TMPD}/genespos.sqlite \
+  --snpspos=${TMPD}/snpspos.sqlite \
+  --cores=1 \
+  --cis-pvalue=1 --trans-pvalue=1 \
+  | sort \
+  > ${TMPD}/full
+
+awk -v FS='	' -v OFS='	' '{print $2":::"$1}' ${TMPD}/prefilter.tab \
+ | sort > ${TMPD}/prefilter.sorted
+
+awk -v FS='	' -v OFS='	' '{print $1":::"$2, $0}' ${TMPD}/full \
+ | sort -k1,1 \
+ > ${TMPD}/full.sorted
+
+join -t '	' ${TMPD}/prefilter.sorted ${TMPD}/full.sorted \
+  | cut -f 2- \
+  | sort \
+  > ${TMPD}/full.postfiltered
+
+if diff ${TMPD}/{with-prefiltering,full.postfiltered} ; then
+  echo "outputs are identical"
+else
+  diff ${TMPD}/{with-prefiltering,full.postfiltered}
+fi
