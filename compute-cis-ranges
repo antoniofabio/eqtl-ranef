@@ -53,6 +53,10 @@ sink(stderr())
 str(gt.pos)
 sink()
 
+commonChromosomes <- intersect(unique(gt.pos$chr), unique(gex.pos$chr))
+gt.pos <- subset(gt.pos, chr %in% commonChromosomes)
+gex.pos <- subset(gex.pos, chr %in% commonChromosomes)
+
 if(opts$`sorted-snpspos` != "") {
   message("dumping sorted genotype data to tab-delimited file ", shQuote(opts$`sorted-snpspos`))
   write.table(gt.pos,
