@@ -120,14 +120,8 @@ repeat {
     gtPos <- gt.pos[snpEnd, ]
 
     if(gtPos$chr != genePos$chr) {
-      ## message("different chromosome")
-      if(somethingMatchedCurrentGene) {
-        break
-      } else {
-        snpStart <- snpEnd
-        snpEnd <- snpEnd + 1L
-        next
-      }
+      DEBUG("different chromosome: gene has ", genePos$chr, ", SNP has ", gtPos$chr)
+      break
     }
 
     if(gtPos$pos < (genePos$start - CIS)) {
