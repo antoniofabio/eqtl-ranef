@@ -1,0 +1,222 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(plyr)
+})
+
+options(stringsAsFactors = FALSE)
+
+option_list <-
+    list(
+        make_option("--gex", help = "expression data table", default = NULL),
+        make_option("--gt", help = "sorted genotype data table", default = NULL),
+        make_option("--cis-ranges", help = "cis ranges table [default: cisRanges.tab]", default = "cisRanges.tab"),
+        make_option("--chunks", help = "num. chunks [default: 1000]", default = 1000),
+        make_option("--output-prefix", help = "output prefix [default: 'OUT/']", default = "OUT/"),
+        make_option("--dump-cispairs-db", help = "write out cis pairs db files [default: FALSE]", action = "store_true", default = FALSE)
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "splits eqtl data in chunks, assuming only cis tests will be performed",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+if(opts$`dump-cispairs-db` && is.null(opts$gt)) {
+  stop("sorted genotype data is needed, in order to dump out cispairs db files")
+}
+
+message("options:")
+sink(stderr())
+str(opts)
+sink()
+
+
+if(!is.null(opts$gex)) {
+  stopifnot(file.exists(opts$gex))
+}
+
+if(!is.null(opts$gt)) {
+  stopifnot(file.exists(opts$gt))
+}
+
+stopifnot(file.exists(opts$`cis-ranges`))
+
+message("reading cis ranges data...")
+ranges <- read.table(opts$`cis-ranges`,
+                     header = FALSE, sep = "\t", quote = "", comment.char = "",
+                     col.names = c("reporterID", "start", "end"),
+                     colClasses = c("character", "numeric", "numeric"))
+message("done:")
+sink(stderr())
+str(ranges)
+sink()
+
+if(!is.null(opts$gt)) {
+  gt.con <- file(opts$gt, open = "r", raw = TRUE)
+  gt.fields <- strsplit(readLines(gt.con, n = 1), "\t")[[1]]
+}
+
+CHUNKS <- min(nrow(ranges), opts$chunks)
+message("splitting the data into ", CHUNKS, " chunks")
+ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
+
+chunks <- ddply(ranges, .(chunk), summarize,
+                start = min(start),
+                end = max(end),
+                num.snps = max(end) - min(start) + 1,
+                num.genes = length(start),
+                num.tests = sum(end) - sum(start) + length(start))
+CDIGITS <- ceiling(log10(CHUNKS)) + 1
+CFMT <- sprintf("%%s%%0%dd/", CDIGITS)
+chunks$folder <- sprintf(CFMT, opts$`output-prefix`, chunks$chunk)
+
+message("\nnum. SNPs per chunk:")
+sink(stderr())
+print(summary(chunks$num.tests))
+sink()
+
+message("\nnum. genes per chunk:")
+sink(stderr())
+print(table(chunks$num.genes))
+sink()
+
+message("\nnum. tests per chunk:")
+sink(stderr())
+print(summary(chunks$num.tests))
+sink()
+
+message("")
+
+message("creating output folders ", shQuote(chunks$folder[1]), " to ", shQuote(tail(chunks$folder, 1)), " ...")
+d_ply(chunks, .(chunk), splat(function(folder, ...) {
+  if(!file.exists(folder)) {
+    dir.create(folder, showWarning = FALSE, recursive = TRUE)
+  }
+}))
+message("done.")
+
+if(!is.null(opts$gex)) {
+
+  message("\n=processing expression data=\n")
+
+  message("reading full expression data in memory...")
+  gex.fields <- strsplit(readLines(opts$gex, n = 1), "\t")[[1]]
+  gex <- read.table(opts$gex,
+                    header = TRUE,
+                    col.names = gex.fields,
+                    colClasses = c("character", rep("numeric", length(gex.fields) - 1)),
+                    check.names = FALSE)
+  message("done.")
+
+  message("writing chunks on disk...")
+  d_ply(chunks, .(chunk), splat(function(chunk, folder, ...) {
+    chunk.in <- chunk
+    genes <- unique(subset(ranges, chunk == chunk.in)$reporterID)
+    gex.chunk <- subset(gex, gex[[1]] %in% genes)
+    write.table(gex.chunk,
+                file = file.path(folder, "expression.fat"),
+                sep = "\t",
+                quote = FALSE,
+                row.names = FALSE, col.names = TRUE)
+  }))
+  message("done.")
+
+}
+
+if(!is.null(opts$gt)) {
+
+  message("\n=processing genotype data=\n")
+
+  gt.con <- file(opts$gt, open = "r", raw = TRUE)
+  gt.header <- readLines(gt.con, n = 1)
+  stopifnot(length(gt.header) > 0)
+
+  gt.chunks <- chunks
+  gt.chunks$filename <- file.path(gt.chunks$folder, "genotype.fat")
+  d_ply(gt.chunks, .(chunk), splat(function(filename, ...) {
+    cat(gt.header, "\n", sep = "", file = filename, append = FALSE)
+  }))
+
+  gt.counter <- 0L
+  gt.snps <- character(1e5)
+
+  TIME_INTERVAL <- as.difftime(1, units = "mins")
+  ORIG_TIME <- START_TIME <- Sys.time()
+
+  repeat {
+
+    gt.line <- readLines(gt.con, n = 1)
+    if(length(gt.line) == 0) {
+      break
+    }
+    gt.counter <- gt.counter + 1L
+
+    if(gt.counter > length(gt.snps)) {
+      gt.snps <- c(gt.snps, character(length(gt.snps)))
+    }
+
+    gt.snps[gt.counter] <- SNPID <- strsplit(gt.line, "\t")[[1]][1]
+    gt.i.chunks <- subset(gt.chunks, start <= gt.counter & end >= gt.counter)
+
+    d_ply(gt.i.chunks, .(chunk), splat(function(filename, ...) {
+      cat(gt.line, "\n", sep = "", file = filename, append = TRUE)
+    }))
+
+    CUR_TIME <- Sys.time()
+    ELAPSED <- CUR_TIME - START_TIME
+    if(ELAPSED > TIME_INTERVAL) {
+      START_TIME <- CUR_TIME
+      message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME))
+    }
+
+  }
+  gt.snps <- head(gt.snps, n = gt.counter)
+
+  CUR_TIME <- Sys.time()
+  message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME))
+  message("")
+
+  close(gt.con)
+
+  if(opts$`dump-cispairs-db`) {
+
+    if(!suppressMessages(require(RSQLite))) {
+      message("the RSQLite R package is needed in order to dump cispairs db files")
+      quit(save = "no", status = 1)
+    }
+
+    message("dumping cispairs db files...")
+    driver <- dbDriver("SQLite")
+
+    ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
+    ranges.db$filename <- file.path(ranges.db$folder, "prefilter.cispairs.sqlite")
+
+    d_ply(ranges.db, .(chunk), splat(function(filename, reporterID, start, end, ...) {
+
+      pairs <- ddply(data.frame(reporterID, start, end),
+                     .(reporterID), summarize,
+                     SNPID = gt.snps[seq(start, end)])
+
+      if(nrow(pairs) == 0) {
+        return(NULL)
+      }
+
+      ignore <- unlink(filename[1], force = TRUE)
+      db <- dbConnect(driver, filename[1])
+      ignore <- dbGetQuery(db, "create table pairs(reporterID text, SNPID text)")
+      dbWriteTable(db, value = pairs, name = "pairs",
+                   row.names = FALSE, overwrite = TRUE)
+      ignore <- dbGetQuery(db, "create index repIdx on pairs(reporterID)")
+      ignore <- dbGetQuery(db, "create index snpIdx on pairs(SNPID)")
+      dbDisconnect(db)
+
+    }))
+
+    message("done.\n")
+
+  }
+
+}
+
+message("\nanalysis completed.")

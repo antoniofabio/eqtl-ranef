@@ -1,0 +1,20 @@
+first run: full analysis, followed by subsetting cis results only
+second run
+
+I) compute cis ranges
+
+
+II) subset genotype and expression data
+
+
+III) split data in chunks
+
+
+IV) run one analysis per chunk
+
+
+V) merge back results
+
+
+compare results
+
