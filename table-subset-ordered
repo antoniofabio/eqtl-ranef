@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+set -u
+set -o pipefail
+
+function show_help {
+ echo "subset a tab-delimited table, according to row IDs specified
+in the first column of the file specified on the command line.
+
+Usage:
+
+$0 idsFile.txt < inputTable.tab > outputTable.tab
+$0 -a idsFile.txt < inputTable.withHeader.tab > outputTable.withHeader.tab
+
+"
+}
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
+IDsFILE=""
+ADD_HEADER=false
+
+while getopts "h?a" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    a)  ADD_HEADER=true
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+IDsFILE=$1
+
+if [ "$ADD_HEADER" = true ] ; then
+  # consume the first line of the input table as is:
+  head -n 1
+fi
+
+join -t '	' \
+  <(awk -v FS='	' -v OFS='	' '{print $1, NR}' ${IDsFILE} | sort -k1,1) \
+  <(sort -k1,1) \
+  | sort -k2,2g \
+  | cut -f 1,3-
