@@ -405,9 +405,8 @@ samplesIDs <- c()
 lns <- c()
 repeat {
   line <- readLines(input, n = 1)
-  if(length(line) != 1) {
-    stop("error while scanning input data: expecting to read in 1 row, got ",
-         length(line), " instead")
+  if(length(line) == 0) {
+    break
   }
   lns <- c(lns, line)
   fields <- strsplit(line, "\t")[[1]]
