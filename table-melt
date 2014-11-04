@@ -10,7 +10,7 @@ option_list <-
                    default = 1)
        )
 
-parser <- OptionParser(usage = "%prog [--id-vars=1] inputFileName",
+parser <- OptionParser(usage = "%prog [--id-vars=1] < inputFileName",
                        description = "melts fat tab-delimited data into a long, thin table",
                        option_list = option_list)
 opts <- parse_args(parser, positional_arguments = TRUE)
@@ -18,15 +18,23 @@ opts <- parse_args(parser, positional_arguments = TRUE)
 idVars <- as.numeric(opts$options$`id-vars`)
 args <- opts$args
 
-if(length(args) != 1) {
+if(length(args) > 1) {
   print_help(parser)
   quit(save = "no", status = 1)
 }
 
-inputFileName <- args[1]
-message("input file: ", shQuote(inputFileName))
-if(!file.exists(inputFileName)) {
-  stop("input file ", shQuote(inputFileName), " does not exist")
+if(length(args) == 1) {
+
+  inputFileName <- args[1]
+  message("input file: ", shQuote(inputFileName))
+  if(!file.exists(inputFileName)) {
+    stop("input file ", shQuote(inputFileName), " does not exist")
+  }
+
+} else {
+
+  inputFileName <- "stdin"
+
 }
 
 fin <- file(inputFileName, "r", raw = TRUE)

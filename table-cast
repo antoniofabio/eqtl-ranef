@@ -1,0 +1,169 @@
+#!/usr/bin/env Rscript
+
+if(!suppressPackageStartupMessages(require("optparse", quietly=TRUE))) {
+  stop("the 'optparse' package is needed in order to run this script")
+}
+
+option_list <-
+  list(
+       make_option("--input", help = "input file name (use '-' for stdin) [default: -]",
+                   default = '-')
+       )
+
+parser <- OptionParser(usage = "%prog --input=inputFileName",
+                       description = "cast a thin, long tab-delimited table into a fat, large table",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+inputFileName <- opts$input
+if(inputFileName != "-") {
+  stopifnot(file.exists(inputFileName))
+  fin <- file(inputFileName, open = "r", raw = TRUE)
+} else {
+  fin <- file("stdin", open = "r", raw = TRUE)
+}
+
+temp <- readLines(fin, n = 1)
+pushBack(temp, fin)
+numInputColumns <- length(strsplit(temp, "\t")[[1]])
+message(numInputColumns, " columns detected in input")
+if(numInputColumns > 3) {
+  stop("not implemented yet")
+}
+
+if(numInputColumns < 3) {
+  message("noting to possibly expand to: terminating")
+  quit(save = "no", status = 0)
+}
+outputIDs <- numInputColumns - 2
+
+idVarNames <- paste0("ID", if(outputIDs > 1) seq_len(outputIDs) else "")
+
+##
+## read all columns data from the 1st output row
+##
+message("\nscanning input data for IDs...")
+firstRegressorID <- c()
+samplesIDs <- c()
+lns <- c()
+repeat {
+  line <- readLines(fin, n = 1)
+  if(length(line) != 1) {
+    stop("error while scanning input data: expecting to read in 1 row, got ",
+         length(line), " instead")
+  }
+  lns <- c(lns, line)
+  fields <- strsplit(line, "\t")[[1]]
+  if(length(fields) != 3) {
+    stop("invalid input data format: was expecting 3 tab-delimited columns")
+  }
+  if(length(firstRegressorID) > 0) {
+    if(fields[1] != firstRegressorID) {
+      break
+    }
+  } else {
+    firstRegressorID <- fields[1]
+  }
+  if(fields[2] %in% samplesIDs) {
+    stop("samples ids (2nd column) must be unique")
+  }
+  samplesIDs <- c(samplesIDs, fields[2])
+}
+pushBack(lns, fin)
+samplesIDs <- sort(samplesIDs)
+message("OK. detected ", length(samplesIDs), " samples:")
+sink(stderr())
+str(samplesIDs)
+sink()
+message("")
+
+outputTemplate <- character(length(samplesIDs) + length(idVarNames))
+names(outputTemplate) <- c(idVarNames, samplesIDs)
+outputHeader <- paste(names(outputTemplate), collapse = "\t")
+writeLines(outputHeader)
+
+CHUNK_SIZE <- 100L
+readRow <- function(con) {
+
+  ans <- data.frame(ID = character(0), sampleID = character(0), value = character(0),
+                    stringsAsFactors = FALSE)
+
+  repeat {
+
+    txt <- readLines(con, CHUNK_SIZE, warn = FALSE)
+    if(length(txt) == 0) {
+      break
+    }
+
+    txtCon <- textConnection(txt)
+    chunk <- read.table(txtCon,
+                        sep = "\t",
+                        header = FALSE,
+                        quote = "",
+                        comment.char = "",
+                        colClasses = c("character", "character", "character"),
+                        col.names = c("ID", "sampleID", "value"))
+    close(txtCon)
+
+    if(nrow(ans) == 0) {
+      ans <- chunk
+      firstID <- head(ans$ID, 1)
+
+      if(head(ans$ID, 1) == tail(ans$ID, 1)) {
+        ## we're not done with this row: keep reading
+        next
+      }
+
+      lastID <- tail(ans$ID, 1)
+      keep.flag <- with(ans, ID != lastID)
+      ans <- ans[keep.flag, ]
+      pushBack(txt[!keep.flag], con)
+      break
+    }
+
+    lastID <- tail(chunk$ID, 1)
+    if(lastID != firstID) {
+      keep.flag <- with(chunk, ID != lastID)
+      ans <- rbind(ans, subset(chunk, keep.flag))
+      pushBack(txt[!keep.flag], con)
+      break
+    }
+
+    ans <- rbind(ans, chunk)
+
+  }
+
+  return(ans)
+
+}
+
+rowsCounter <- 0
+TIME_INTERVAL <- as.difftime(1, units = "mins")
+TIME_ORIG <- TIME_START <- Sys.time()
+
+repeat {
+
+  row <- readRow(fin)
+  if(nrow(row) == 0) {
+    break
+  }
+  rowsCounter <- rowsCounter + 1L
+
+  outputTemplate['ID'] <- row$ID[1]
+  outputTemplate[row$sampleID] <- row$value
+  writeLines(paste(outputTemplate, collapse = "\t"))
+
+  TIME_CUR <- Sys.time()
+  TIME_ELAPSED <- TIME_CUR - TIME_START
+  if(TIME_ELAPSED > TIME_INTERVAL) {
+    TIME_START <- TIME_CUR
+    message(rowsCounter, " rows processed in ", format(TIME_CUR - TIME_ORIG))
+    gc()
+  }
+
+}
+
+TIME_CUR <- Sys.time()
+message(rowsCounter, " rows processed in ", format(TIME_CUR - TIME_ORIG))
+
+message("conversion completed.")
