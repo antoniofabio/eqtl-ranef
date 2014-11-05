@@ -13,7 +13,9 @@ option_list <-
         make_option("--snpspos", help = "snps positions sqlite file [default: snpspos.sqlite]", default = "snpspos.sqlite"),
         make_option("--sorted-snpspos", help = "write sorted genotype annotation to this tab-delimited file (empty string to suppress) [default: 'snpspos.sorted.tab']",
                     default = 'snpspos.sorted.tab'),
-        make_option("--cis-window", help = "cis window size [default: 50kb]", default = 50000)
+        make_option("--cis-window", help = "cis window size [default: 50kb]", default = 50000),
+        make_option("--no-native", help = "disable native code implementation of the cis ranges computing algorithm [default: use native impl.]",
+                    default = FALSE, action = "store_true")
         )
 
 parser <- OptionParser(usage = "%prog [options]",
@@ -72,96 +74,133 @@ if(opts$`sorted-snpspos` != "") {
 ##
 message("computing cis ranges...")
 
-geneIdx <- 1L
-snpStart <- 0L
-snpEnd <- 1L
 CIS <- opts$`cis-window`
 
-gex.ranges <- data.frame(gex.pos[, 1, drop = FALSE],
-                         start = NA_real_,
-                         end = NA_real_)
+get_cis_ranges_R <- function(gex.pos, gt.pos) {
+  gex.ranges <- data.frame(gex.pos[, 1, drop = FALSE],
+                           start = NA_real_,
+                           end = NA_real_)
 
-TIME_INTERVAL <- as.difftime(1, units = "mins")
-ORIG_TIME <- START_TIME <- Sys.time()
+  geneIdx <- 1L
+  snpStart <- 0L
+  snpEnd <- 1L
 
-printTimingInfo <- function() {
-  totalElapsedTime <- CUR_TIME - ORIG_TIME
-  avgSpeed <- (geneIdx - 1) / as.numeric(totalElapsedTime, units = "hours")
-  remainingTime <- as.difftime((nrow(gex.pos) - geneIdx) / avgSpeed, units = "hours")
-  message(geneIdx - 1L, " out of ", nrow(gex.pos), " genes processed in ", format(totalElapsedTime),
-          if(geneIdx <= nrow(gex.pos)) paste0("; remaining: ", format(remainingTime)) else "")
-}
+  TIME_INTERVAL <- as.difftime(1, units = "mins")
+  ORIG_TIME <- START_TIME <- Sys.time()
 
-## DEBUG <- message
-DEBUG <- function(...) {}
-
-## FOR EACH GENE
-repeat {
-
-  DEBUG("geneIdx = ", geneIdx)
-
-  if((snpStart >= nrow(gt.pos)) || (snpEnd > nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
-    DEBUG("end of file.")
-    break
+  printTimingInfo <- function() {
+    totalElapsedTime <- CUR_TIME - ORIG_TIME
+    avgSpeed <- (geneIdx - 1) / as.numeric(totalElapsedTime, units = "hours")
+    remainingTime <- as.difftime((nrow(gex.pos) - geneIdx) / avgSpeed, units = "hours")
+    message(geneIdx - 1L, " out of ", nrow(gex.pos), " genes processed in ", format(totalElapsedTime),
+            if(geneIdx <= nrow(gex.pos)) paste0("; remaining: ", format(remainingTime)) else "")
   }
-  genePos <- gex.pos[geneIdx, ]
-  somethingMatchedCurrentGene <- FALSE
 
-  DEBUG("snpStart = ", snpStart)
-  ## FOR EACH SNP
+  ## DEBUG <- message
+  DEBUG <- function(...) {}
+
+  ## FOR EACH GENE
   repeat {
 
-    DEBUG("snpEnd = ", snpEnd)
+    DEBUG("geneIdx = ", geneIdx)
 
-    if(snpEnd > nrow(gt.pos)) {
+    if((snpStart >= nrow(gt.pos)) || (snpEnd > nrow(gt.pos)) || (geneIdx > nrow(gex.pos))) {
       DEBUG("end of file.")
       break
     }
-    gtPos <- gt.pos[snpEnd, ]
+    genePos <- gex.pos[geneIdx, ]
+    somethingMatchedCurrentGene <- FALSE
 
-    if(gtPos$chr != genePos$chr) {
-      DEBUG("different chromosome: gene has ", genePos$chr, ", SNP has ", gtPos$chr)
-      break
-    }
+    DEBUG("snpStart = ", snpStart)
+    ## FOR EACH SNP
+    repeat {
 
-    if(gtPos$pos < (genePos$start - CIS)) {
-      DEBUG("earlier")
-      snpStart <- snpEnd
+      DEBUG("snpEnd = ", snpEnd)
+
+      if(snpEnd > nrow(gt.pos)) {
+        DEBUG("end of file.")
+        break
+      }
+      gtPos <- gt.pos[snpEnd, ]
+
+      if(gtPos$chr != genePos$chr) {
+        DEBUG("different chromosome: gene has ", genePos$chr, ", SNP has ", gtPos$chr)
+        break
+      }
+
+      if(gtPos$pos < (genePos$start - CIS)) {
+        DEBUG("earlier")
+        snpStart <- snpEnd
+        snpEnd <- snpEnd + 1L
+        next
+      }
+
+      if(gtPos$pos > (genePos$end + CIS)) {
+        DEBUG("later")
+        break
+      }
+
+      somethingMatchedCurrentGene <- TRUE
       snpEnd <- snpEnd + 1L
-      next
+
     }
 
-    if(gtPos$pos > (genePos$end + CIS)) {
-      DEBUG("later")
-      break
+    if(somethingMatchedCurrentGene) {
+      gex.ranges[geneIdx, "start"] <- snpStart + 1L
+      gex.ranges[geneIdx, "end"] <- snpEnd - 1L
+      if(gtPos$chr != genePos$chr) {
+        snpStart <- snpEnd - 1L
+      }
     }
 
-    somethingMatchedCurrentGene <- TRUE
-    snpEnd <- snpEnd + 1L
+    snpEnd <- snpStart + 1L
+    geneIdx <- geneIdx + 1L
+
+    CUR_TIME <- Sys.time()
+    ELAPSED <- CUR_TIME - START_TIME
+    if(ELAPSED > TIME_INTERVAL) {
+      START_TIME <- CUR_TIME
+      printTimingInfo()
+    }
 
   }
 
-  if(somethingMatchedCurrentGene) {
-    gex.ranges[geneIdx, "start"] <- snpStart + 1L
-    gex.ranges[geneIdx, "end"] <- snpEnd - 1L
-    if(gtPos$chr != genePos$chr) {
-      snpStart <- snpEnd - 1L
-    }
-  }
-
-  snpEnd <- snpStart + 1L
-  geneIdx <- geneIdx + 1L
-
-  CUR_TIME <- Sys.time()
-  ELAPSED <- CUR_TIME - START_TIME
-  if(ELAPSED > TIME_INTERVAL) {
-    START_TIME <- CUR_TIME
-    printTimingInfo()
-  }
+  printTimingInfo()
 
 }
 
-printTimingInfo()
+get_cis_ranges_C <- function(gex.pos, gt.pos) {
+  cout <- .Call("get_cis_ranges",
+                as.character(gex.pos$chr),
+                as.integer(gex.pos$start),
+                as.integer(gex.pos$end),
+                as.character(gt.pos$chr),
+                as.integer(gt.pos$pos),
+                as.integer(CIS))
+  names(cout) <- c("start", "end")
+  ans <- append(list(reporterID = gex.pos$reporterID), cout)
+  return(as.data.frame(ans))
+}
+
+PATH <- dirname(sub("^--file=", "",
+                    grep("^--file=", commandArgs(trailingOnly = FALSE),
+                         value = TRUE)[1]))
+SHLIB <- file.path(PATH, paste0("data-cis-ranges-lib", .Platform$dynlib.ext))
+if(opts$`no-native`) {
+  get_cis_ranges <- get_cis_ranges_R
+} else {
+  if(file.exists(SHLIB)) {
+    dyn.load(SHLIB)
+    if(!is.loaded("get_cis_ranges")) {
+      stop("problem loading shared library file ", shQuote(SHLIB))
+    }
+    get_cis_ranges <- get_cis_ranges_C
+  } else {
+    stop("cannot find shared library file ", shQuote(SHLIB), ": cannot use native code implementation. try re-running with '--no-native' option (much slower!)")
+  }
+}
+
+gex.ranges <- get_cis_ranges(gex.pos, gt.pos)
 
 message("writing results on stdout...")
 gex.ranges <- na.omit(gex.ranges)
