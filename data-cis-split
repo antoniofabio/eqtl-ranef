@@ -14,6 +14,7 @@ option_list <-
         make_option("--cis-ranges", help = "cis ranges table [default: cisRanges.tab]", default = "cisRanges.tab"),
         make_option("--chunks", help = "num. chunks [default: 1000]", default = 1000),
         make_option("--output-prefix", help = "output prefix [default: 'OUT/']", default = "OUT/"),
+        make_option("--dump-cisranges", help = "write out cis ranges tab files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--dump-cispairs-db", help = "write out cis pairs db files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--zip-chunks", help = "gzip expression and genotype files [default: FALSE]", action = "store_true", default = FALSE)
         )
@@ -197,6 +198,40 @@ if(!is.null(opts$gt)) {
     sink()
     stopifnot(all(status == 0))
     message("done.")
+  }
+
+  if(opts$`dump-cisranges`) {
+
+    ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
+    ranges.db$filename <- file.path(ranges.db$folder, "prefilter.cispairs.tab")
+
+    d_ply(ranges.db, .(chunk), splat(function(chunk, from, to, ...) {
+
+      offset <- min(from)
+
+      ans <- data.frame(chunk = chunk,
+                        from = from - offset + 1,
+                        to = to - offset + 1,
+                        filename = filename,
+                        stringsAsFactors = FALSE)
+
+      write.table(ans,
+                  file = filename[1],
+                  row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+
+    }))
+
+    if(opts$`zip-chunks`) {
+      message("gzipping cis pairs tables...")
+      commands <- sprintf("gzip %s", shQuote(ranges.db$filename))
+      sink(stderr())
+      status <- laply(commands, system, intern = FALSE,
+                      .progress = progress_text(style = 1))
+      sink()
+      stopifnot(all(status == 0))
+      message("done.")
+    }
+
   }
 
   if(opts$`dump-cispairs-db`) {
