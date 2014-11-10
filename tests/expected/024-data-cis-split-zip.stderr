@@ -1,0 +1,26 @@
+first run: full analysis, followed by subsetting cis results only
+second run
+
+0) sort data and positions annotation
+
+ extract and sort gt pos data
+ reshape, subset and sort gt data
+ export gex pos data
+
+I) compute cis ranges
+
+
+II) subset genotype and expression data
+
+
+III) split data in chunks
+
+
+IV) run one analysis per chunk
+
+
+V) merge back results
+
+
+compare results
+
