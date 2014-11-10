@@ -1,0 +1,47 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(plyr)
+})
+
+options(stringsAsFactors = FALSE)
+
+option_list <-
+    list()
+
+parser <- OptionParser(usage = "%prog [options] sorted-SNP-IDs < cis-ranges.tab > cis-pairs.tab",
+                       description = "converts cis-ranges into cis-pairs",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = TRUE)
+args <- opts$args
+opts <- opts$options
+
+sortedGTIDs <- readLines(args[1])
+
+finput <- file("stdin", open = "r", raw = TRUE)
+
+repeat {
+
+  line <- readLines(finput, n = 1L)
+
+  if(length(line) == 0) {
+    break
+  }
+
+  fields <- strsplit(line, "\t")[[1]]
+
+  rng <- as.numeric(fields[2:3])
+
+  ans <- data.frame(reporterID = fields[1],
+                    SNP = sortedGTIDs[seq(rng[1], rng[2])],
+                    stringsAsFactors = FALSE)
+
+  write.table(ans,
+              file = "",
+              quote = FALSE,
+              row.names = FALSE, col.names = FALSE, sep = "\t")
+
+}
+
+message("\nanalysis completed.")
