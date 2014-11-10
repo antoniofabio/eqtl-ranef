@@ -12,10 +12,16 @@ option_list <-
         make_option("--header", help = "include header [default: no header included]", action = "store_true", default = FALSE)
         )
 
-parser <- OptionParser(usage = "%prog [options]",
+parser <- OptionParser(usage = "%prog [options] input-sqlite-filename > output-table",
                        description = "export table from an sqlite database in tab-delimited format",
                        option_list = option_list)
-opts <- parse_args(parser, positional_arguments = FALSE)
+opts <- parse_args(parser, positional_arguments = TRUE)
+args <- opts$args
+opts <- opts$options
+
+if(length(args) > 0) {
+  opts$input <- args[1]
+}
 
 stopifnot(!is.null(opts$input))
 if(is.null(opts$output)) {
