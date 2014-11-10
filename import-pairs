@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+set -u
+set -o pipefail
+
+INPUT_FILENAME=$1
+DB_FILENAME=$2
+
+rm -f ${DB_FILENAME}
+
+echo "
+create table pairs(reporterID text, SNPID text);
+.import ${INPUT_FILENAME} pairs
+create index pairsIdx on pairs(reporterID, SNPID);
+" | sqlite3 -csv -separator "	" ${DB_FILENAME}
