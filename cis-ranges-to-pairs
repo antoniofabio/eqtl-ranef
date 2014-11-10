@@ -17,7 +17,9 @@ opts <- parse_args(parser, positional_arguments = TRUE)
 args <- opts$args
 opts <- opts$options
 
-sortedGTIDs <- readLines(args[1])
+sortedGTIDs.con <- file(args[1], open = "r", raw = TRUE)
+sortedGTIDs <- readLines(sortedGTIDs.con)
+close(sortedGTIDs.con)
 
 finput <- file("stdin", open = "r", raw = TRUE)
 
