@@ -1,0 +1,47 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(RSQLite)
+})
+
+option_list <-
+    list(
+        make_option("--input", help = "input sqlite file", default = NULL),
+        make_option("--output", help = "output file [default: stdout]", default = NULL),
+        make_option("--header", help = "include header [default: no header included]", action = "store_true", default = FALSE)
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "export table from an sqlite database in tab-delimited format",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+stopifnot(!is.null(opts$input))
+if(is.null(opts$output)) {
+  fout <- ""
+} else {
+  fout <- file(opts$output, open = "w", raw = TRUE)
+}
+
+db <- dbConnect(dbDriver("SQLite"), opts$input)
+
+## read full table
+message("reading input data...")
+tableName <- dbListTables(db)[1]
+contents <- dbGetQuery(db, sprintf("select * from %s", tableName[1]))
+message("done:")
+sink(stderr())
+str(contents)
+sink()
+
+ignore <- dbDisconnect(db)
+
+write.table(contents,
+            file = fout,
+            row.names = FALSE,
+            col.names = opts$header,
+            sep = "\t",
+            quote = FALSE)
+
+message("completed.")
