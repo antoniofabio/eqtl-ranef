@@ -111,7 +111,7 @@ for chunk in `ls ${TMPD}/chunks` ; do
     --outcomes=<(../table-melt < ${TMPD}/chunks/${chunk}/expression.fat 2> /dev/null) \
     --fixef=${FIXEF} \
     --ranef=${RANEF} \
-    --prefilter=${TMPD}/chunks/${chunk}/prefilter.cispairs.sqlite \
+    --prefilter=${TMPD}/chunks/${chunk}/cispairs.sqlite \
     --cis-window=${CIS_WINDOW} \
     --cis-pvalue=1 --trans-pvalue=1 \
     2> /dev/null \

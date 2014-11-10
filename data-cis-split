@@ -203,16 +203,15 @@ if(!is.null(opts$gt)) {
   if(opts$`dump-cisranges`) {
 
     ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
-    ranges.db$filename <- file.path(ranges.db$folder, "prefilter.cispairs.tab")
+    ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
 
-    d_ply(ranges.db, .(chunk), splat(function(chunk, from, to, ...) {
+    d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
 
-      offset <- min(from)
+      offset <- min(start)
 
-      ans <- data.frame(chunk = chunk,
-                        from = from - offset + 1,
-                        to = to - offset + 1,
-                        filename = filename,
+      ans <- data.frame(reporterID = reporterID,
+                        from = start - offset + 1,
+                        to = end - offset + 1,
                         stringsAsFactors = FALSE)
 
       write.table(ans,
@@ -245,7 +244,7 @@ if(!is.null(opts$gt)) {
     driver <- dbDriver("SQLite")
 
     ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
-    ranges.db$filename <- file.path(ranges.db$folder, "prefilter.cispairs.sqlite")
+    ranges.db$filename <- file.path(ranges.db$folder, "cispairs.sqlite")
 
     d_ply(ranges.db, .(chunk), splat(function(filename, reporterID, start, end, ...) {
 
