@@ -5,14 +5,7 @@ set -u
 
 CIS_WINDOW=0
 
-TMPD=`mktemp -d`
-trap "rm -rf ${TMPD}" EXIT
-
-../import-genespos --output=${TMPD}/genespos.sqlite < data/genespos.ex1.tab 2> /dev/null
-../import-snpspos --output=${TMPD}/snpspos.sqlite < data/snpspos.ex1.tab 2> /dev/null
-
-../data-cis-ranges \
-  --genespos=${TMPD}/genespos.sqlite \
-  --snpspos=${TMPD}/snpspos.sqlite \
-  --sorted-snpspos=${TMPD}/snpspos.sorted.tab \
-  --cis-window=${CIS_WINDOW}
+sort -k2,2 -k3,3g data/genespos.ex1.tab \
+    | ../data-cis-ranges \
+    <(sort -k2,2 -k3,3g data/snpspos.ex1.tab) \
+    ${CIS_WINDOW}

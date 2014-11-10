@@ -49,24 +49,39 @@ LOG "first run: full analysis, followed by subsetting cis results only"
 LOG "second run"
 
 LOG ""
+LOG "0) sort data and positions annotation"
+LOG ""
+
+LOG " extract and sort gt pos data"
+../export-table --input=${GTPOS} 2> /dev/null \
+    | ../table-sort-genomic \
+    > ${TMPD}/gt.pos
+
+LOG " reshape, subset and sort gt data"
+cat ${GT} \
+  | ../table-cast 2> /dev/null \
+  | ../table-subset-ordered -a ${TMPD}/gt.pos 2> /dev/null \
+  > ${TMPD}/gt.fat
+
+LOG " export gex pos data"
+../export-table --input=${GEXPOS} 2> /dev/null \
+    | ../table-sort-genomic \
+    > ${TMPD}/gex.pos
+
+LOG ""
 LOG "I) compute cis ranges"
 LOG ""
 
-../data-cis-ranges \
-  --genespos=${GEXPOS} \
-  --snpspos=${GTPOS} \
-  --sorted-snpspos=${TMPD}/gt.pos \
-  --cis-window=${CIS_WINDOW} \
-  2> /dev/null \
-  > ${TMPD}/cisRanges.tab
+cat ${TMPD}/gex.pos \
+    | ../data-cis-ranges \
+      <(../export-table --input=${GTPOS} 2> /dev/null | sort -k2,2 -k3,3g) \
+      ${CIS_WINDOW} \
+    2> /dev/null \
+    > ${TMPD}/cisRanges.tab
 
 LOG ""
 LOG "II) subset genotype and expression data"
 LOG ""
-
-../table-cast < ${GT} \
- 2> /dev/null \
- | ../table-subset-ordered -a ${TMPD}/gt.pos > ${TMPD}/gt.fat 2> /dev/null
 
 ../table-cast < ${GEX} \
  2> /dev/null \

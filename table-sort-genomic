@@ -1,0 +1,59 @@
+#!/bin/bash
+
+set -e
+set -u
+set -o pipefail
+
+function show_help {
+ echo "sorts a character-delimited table whose first 3 columns are:
+ID (optional), chromosome, position
+
+Usage:
+
+$0 [options] < inputTable.tab > outputTable.tab
+
+table includes an header:
+$0 -a < inputTable.withHeader.tab > outputTable.withHeader.tab
+
+table does not include an IDs first column:
+$0 -n < inputTable.withoutIDs.tab > outputTable.withoutIDs.tab
+
+the delimiter is ':', not '\t':
+$0 -n -t ':' < inputTable.colons.tab > outputTable.colons.tab
+"
+}
+
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
+HAS_HEADER=false
+HAS_IDS=true
+DELIMITER="	"
+
+while getopts "h?ant:" opt; do
+    case "$opt" in
+    h|\?)
+        show_help
+        exit 0
+        ;;
+    a)  HAS_HEADER=true
+        ;;
+    n)  HAS_IDS=false
+        ;;
+    t)  DELIMITER=${OPTARG}
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+if [ "$HAS_HEADER" = true ] ; then
+  # consume the first line of the input table as is:
+  head -n 1
+fi
+
+if [ "$HAS_IDS" = true ] ; then
+    sort -t "${DELIMITER}" -k2,2 -k3,3g
+else
+    sort -t "${DELIMITER}" -k1,1 -k2,2g
+fi
