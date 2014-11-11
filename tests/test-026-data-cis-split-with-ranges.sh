@@ -17,11 +17,16 @@ trap "rm -rf ${TMPD}" EXIT
     > ${TMPD}/cisRanges.tab \
     2> /dev/null
 
+../cis-ranges-chunks --mode=gex --chunks=${CHUNKS} \
+  < ${TMPD}/cisRanges.tab \
+  > ${TMPD}/cisChunks.tab \
+  2> /dev/null
+
 ../data-cis-split \
   --gex=data/expression.ex1.fat \
   --gt=data/genotype.ex1.fat \
   --cis-ranges=${TMPD}/cisRanges.tab \
-  --chunks=${CHUNKS} \
+  --chunks=${TMPD}/cisChunks.tab \
   --output-prefix="${TMPD}/chunks/" \
   --dump-cisranges \
   2> /dev/null \

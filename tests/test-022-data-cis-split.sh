@@ -80,7 +80,7 @@ cat ${TMPD}/gex.pos \
     > ${TMPD}/cisRanges.tab
 
 LOG ""
-LOG "II) subset genotype and expression data"
+LOG "II) subset expression data"
 LOG ""
 
 ../table-cast < ${GEX} \
@@ -91,11 +91,20 @@ LOG ""
 LOG "III) split data in chunks"
 LOG ""
 
+LOG " [chunking]"
+
+../cis-ranges-chunks --mode=gex --chunks=${CHUNKS} \
+  < ${TMPD}/cisRanges.tab \
+  > ${TMPD}/cisChunks.tab \
+  2> /dev/null
+
+LOG " [spitting]"
+
 ../data-cis-split \
   --gex=${TMPD}/gex.fat \
   --gt=${TMPD}/gt.fat \
+  --chunks=${TMPD}/cisChunks.tab \
   --cis-ranges=${TMPD}/cisRanges.tab \
-  --chunks=${CHUNKS} \
   --output-prefix="${TMPD}/chunks/" \
   --dump-cispairs-db \
   2> /dev/null

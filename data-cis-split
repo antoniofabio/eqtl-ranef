@@ -9,18 +9,18 @@ options(stringsAsFactors = FALSE)
 
 option_list <-
     list(
+        make_option("--chunks", help = "chunks spec file", default = NULL),
+        make_option("--output-prefix", help = "output prefix [default: 'OUT/']", default = "OUT/"),
         make_option("--gex", help = "expression data table", default = NULL),
         make_option("--gt", help = "sorted genotype data table", default = NULL),
-        make_option("--cis-ranges", help = "cis ranges table [default: cisRanges.tab]", default = "cisRanges.tab"),
-        make_option("--chunks", help = "num. chunks [default: 1000]", default = 1000),
-        make_option("--output-prefix", help = "output prefix [default: 'OUT/']", default = "OUT/"),
+        make_option("--cis-ranges", help = "cis ranges table", default = NULL),
         make_option("--dump-cisranges", help = "write out cis ranges tab files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--dump-cispairs-db", help = "write out cis pairs db files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--zip-chunks", help = "gzip expression and genotype files [default: FALSE]", action = "store_true", default = FALSE)
         )
 
 parser <- OptionParser(usage = "%prog [options]",
-                       description = "splits eqtl data in chunks, assuming only cis tests will be performed",
+                       description = "splits eqtl data in pre-specified chunks",
                        option_list = option_list)
 opts <- parse_args(parser, positional_arguments = FALSE)
 
@@ -33,6 +33,7 @@ sink(stderr())
 str(opts)
 sink()
 
+stopifnot(file.exists(opts$chunks))
 
 if(!is.null(opts$gex)) {
   stopifnot(file.exists(opts$gex))
@@ -42,47 +43,20 @@ if(!is.null(opts$gt)) {
   stopifnot(file.exists(opts$gt))
 }
 
-stopifnot(file.exists(opts$`cis-ranges`))
+if(!is.null(opts$`cis-ranges`)) {
+  stopifnot(file.exists(opts$`cis-ranges`))
+}
 
-message("reading cis ranges data...")
-ranges <- read.table(opts$`cis-ranges`,
-                     header = FALSE, sep = "\t", quote = "", comment.char = "",
-                     col.names = c("reporterID", "start", "end"),
-                     colClasses = c("character", "numeric", "numeric"))
+message("reading chunks spec data...")
+chunks <- read.table(opts$chunks,
+                     header = TRUE, sep = "\t", quote = "", comment.char = "",
+                     as.is = TRUE, check.names = FALSE)
 message("done:")
 sink(stderr())
-str(ranges)
+str(chunks)
 sink()
 
-CHUNKS <- min(nrow(ranges), opts$chunks)
-message("splitting the data into ", CHUNKS, " chunks")
-ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
-
-chunks <- ddply(ranges, .(chunk), summarize,
-                num.snps = max(end) - min(start) + 1,
-                num.tests = sum(end) - sum(start) + length(start),
-                num.genes = length(chunk),
-                start = min(start),
-                end = max(end))
 chunks$folder <- sprintf("%s%d", opts$`output-prefix`, chunks$chunk)
-
-message("\nnum. SNPs per chunk:")
-sink(stderr())
-print(summary(chunks$num.snps))
-sink()
-
-message("\nnum. genes per chunk:")
-sink(stderr())
-print(table(chunks$num.genes))
-sink()
-
-message("\nnum. tests per chunk:")
-sink(stderr())
-print(summary(chunks$num.tests))
-sink()
-
-message("")
-
 message("creating output folders ", shQuote(chunks$folder[1]), " to ", shQuote(tail(chunks$folder, 1)), " ...")
 d_ply(chunks, .(chunk), splat(function(folder, ...) {
   if(!file.exists(folder)) {
@@ -105,10 +79,8 @@ if(!is.null(opts$gex)) {
   message("done.")
 
   message("writing chunks on disk...")
-  d_ply(chunks, .(chunk), splat(function(chunk, folder, ...) {
-    chunk.in <- chunk
-    genes <- unique(subset(ranges, chunk == chunk.in)$reporterID)
-    gex.chunk <- subset(gex, gex[[1]] %in% genes)
+  d_ply(chunks, .(chunk), splat(function(chunk, gex_start, gex_end, folder, ...) {
+    gex.chunk <- gex[seq(gex_start, gex_end),, drop = FALSE]
     outFile <- file.path(folder, "expression.fat")
     outCon <- if(opts$`zip-chunks`) {
       gzfile(paste0(outFile, ".gz"), open = "w")
@@ -126,9 +98,28 @@ if(!is.null(opts$gex)) {
 
 }
 
+if(opts$`dump-cisranges` || opts$`dump-cispairs-db`) {
+
+  message("reading cis-ranges data...")
+  ranges <- read.table(opts$`cis-ranges`,
+                       header = FALSE, sep = "\t", quote = "", comment.char = "",
+                       col.names = c("reporterID", "start", "end"),
+                       colClasses = c("character", "numeric", "numeric"))
+  message("done:")
+  sink(stderr())
+  str(ranges)
+  sink()
+
+  ranges$i <- seq_len(nrow(ranges))
+
+  ranges.db <-
+      subset(merge(ranges, subset(chunks, select = c(chunk, gex_start, gex_end, folder))),
+             i >= gex_start & i <= gex_end)
+
+}
+
 if(opts$`dump-cisranges`) {
 
-  ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
   ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
 
   d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
@@ -140,22 +131,19 @@ if(opts$`dump-cisranges`) {
                       to = end - offset + 1,
                       stringsAsFactors = FALSE)
 
+    outFile <- filename[1]
+    outCon <- if(opts$`zip-chunks`) {
+      gzfile(paste0(outFile, ".gz"), open = "w")
+    } else {
+      file(outFile, open = "w")
+    }
+    on.exit(close(outCon))
+
     write.table(ans,
-                file = filename[1],
+                file = outCon,
                 row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
 
   }))
-
-  if(opts$`zip-chunks`) {
-    message("gzipping cis pairs tables...")
-    commands <- sprintf("gzip %s 2> /dev/null", shQuote(ranges.db$filename))
-    sink(stderr())
-    status <- laply(commands, system, intern = FALSE,
-                    .progress = progress_text(style = 1))
-    sink()
-    stopifnot(all(status == 0))
-    message("done.")
-  }
 
 }
 
@@ -205,11 +193,11 @@ if(!is.null(opts$gt)) {
 
     gt.base <- gt.counter - gt.offset
 
-    gt.i.chunks <- subset(gt.chunks, !((end < (gt.base + 1)) | (start > gt.counter)))
+    gt.i.chunks <- subset(gt.chunks, !((gt_end < (gt.base + 1)) | (gt_start > gt.counter)))
     for(i in seq_len(nrow(gt.i.chunks))) {
       ch <- gt.i.chunks[i, ]
-      A <- max(ch$start - gt.base, 1)
-      B <- min(ch$end - gt.base, gt.offset)
+      A <- max(ch$gt_start - gt.base, 1)
+      B <- min(ch$gt_end - gt.base, gt.offset)
       if(B >= A) {
         block.i <- BLOCK[seq(A, B)]
         cat(paste(block.i, collapse = "\n"), file = ch$filename, append = TRUE)
@@ -259,7 +247,6 @@ if(!is.null(opts$gt)) {
     message("dumping cispairs db files...")
     driver <- dbDriver("SQLite")
 
-    ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
     ranges.db$filename <- file.path(ranges.db$folder, "cispairs.sqlite")
 
     d_ply(ranges.db, .(chunk), splat(function(filename, reporterID, start, end, ...) {

@@ -1,0 +1,74 @@
+#!/usr/bin/env Rscript
+
+suppressMessages({
+  library(optparse)
+  library(plyr)
+})
+
+options(stringsAsFactors = FALSE)
+
+option_list <-
+    list(
+        make_option("--mode", help = "fixed number of genes per chunk; one of: gex, gt, tests [default: 'gex']", default = "gex"),
+        make_option("--chunks", help = "num. chunks [default: 1000]", default = 1000)
+        )
+
+parser <- OptionParser(usage = "%prog [options]",
+                       description = "splits eqtl data in chunks, assuming only cis tests will be performed",
+                       option_list = option_list)
+opts <- parse_args(parser, positional_arguments = FALSE)
+
+stopifnot(opts$mode == "gex")
+
+message("options:")
+sink(stderr())
+str(opts)
+sink()
+
+message("reading cis ranges data...")
+ranges <- read.table(file("stdin", open = "r", raw = TRUE),
+                     header = FALSE, sep = "\t", quote = "", comment.char = "",
+                     col.names = c("reporterID", "start", "end"),
+                     colClasses = c("character", "numeric", "numeric"))
+message("done:")
+sink(stderr())
+str(ranges)
+sink()
+
+CHUNKS <- min(nrow(ranges), opts$chunks)
+message("splitting the data into ", CHUNKS, " chunks")
+ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
+ranges$i <- seq_len(nrow(ranges))
+
+chunks <- ddply(ranges, .(chunk), summarize,
+                gex_start = min(i),
+                gex_end = max(i),
+                gt_start = min(start),
+                gt_end = max(end),
+                num.snps = max(end) - min(start) + 1,
+                num.tests = sum(end) - sum(start) + length(start),
+                num.genes = length(chunk))
+
+message("\nnum. SNPs per chunk:")
+sink(stderr())
+print(summary(chunks$num.snps))
+sink()
+
+message("\nnum. genes per chunk:")
+sink(stderr())
+print(table(chunks$num.genes))
+sink()
+
+message("\nnum. tests per chunk:")
+sink(stderr())
+print(summary(chunks$num.tests))
+sink()
+
+message("")
+
+write.table(chunks, file = "",
+            sep = "\t",
+            row.names = FALSE, col.names = TRUE,
+            quote = FALSE)
+
+message("\nanalysis completed.")
