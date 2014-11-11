@@ -76,7 +76,7 @@ chunks$folder <- sprintf("%s%d/", opts$`output-prefix`, chunks$chunk)
 
 message("\nnum. SNPs per chunk:")
 sink(stderr())
-print(summary(chunks$num.tests))
+print(summary(chunks$num.snps))
 sink()
 
 message("\nnum. genes per chunk:")
