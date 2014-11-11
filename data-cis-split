@@ -69,7 +69,7 @@ chunks <- ddply(ranges, .(chunk), summarize,
                 num.genes = length(chunk),
                 start = min(start),
                 end = max(end))
-chunks$folder <- sprintf("%s%d/", opts$`output-prefix`, chunks$chunk)
+chunks$folder <- sprintf("%s%d", opts$`output-prefix`, chunks$chunk)
 
 message("\nnum. SNPs per chunk:")
 sink(stderr())
