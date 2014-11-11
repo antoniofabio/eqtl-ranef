@@ -187,7 +187,7 @@ if(!is.null(opts$gt)) {
   BLOCK_SIZE <- 1000L
   START_COUNT <- 0L
 
-  TIME_INTERVAL <- as.difftime(1, units = "mins")
+  TIME_INTERVAL <- as.difftime(10, units = "secs")
   ORIG_TIME <- START_TIME <- Sys.time()
 
   repeat {
@@ -209,11 +209,15 @@ if(!is.null(opts$gt)) {
     }
 
     gt.base <- gt.counter - gt.offset
-    for(cursor in seq_len(gt.offset)) {
-      gt.line <- BLOCK[cursor]
-      gt.i.files <- subset(gt.chunks, start <= (gt.base + cursor) & end >= (gt.base + cursor))$filename
-      for(f in gt.i.files) {
-        cat(gt.line, "\n", sep = "", file = f, append = TRUE)
+
+    gt.i.chunks <- subset(gt.chunks, !((end < (gt.base + 1)) | (start > gt.counter)))
+    for(i in seq_len(nrow(gt.i.chunks))) {
+      ch <- gt.i.chunks[i, ]
+      A <- max(ch$start - gt.base, 1)
+      B <- min(ch$end - gt.base, gt.offset)
+      if(B >= A) {
+        block.i <- BLOCK[seq(A, B)]
+        cat(paste(block.i, collapse = "\n"), file = ch$filename, append = TRUE)
       }
     }
 
@@ -221,9 +225,9 @@ if(!is.null(opts$gt)) {
     ELAPSED <- CUR_TIME - START_TIME
     if(ELAPSED > TIME_INTERVAL) {
       START_TIME <- CUR_TIME
-      speed <- (gt.counter - START_COUNT) / as.double(ELAPSED, units = "hours")
+      speed <- (gt.counter - START_COUNT) / as.double(ELAPSED, units = "mins")
       message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME),
-              " [last split: ", round(speed / 1000), "k SNPs/h]")
+              " [last split: ", round(speed / 1e6, 1), "M SNPs/m]")
       START_COUNT <- gt.counter
     }
 
