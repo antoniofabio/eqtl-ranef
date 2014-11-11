@@ -54,11 +54,6 @@ sink(stderr())
 str(ranges)
 sink()
 
-if(!is.null(opts$gt)) {
-  gt.con <- file(opts$gt, open = "r", raw = TRUE)
-  gt.fields <- strsplit(readLines(gt.con, n = 1), "\t")[[1]]
-}
-
 CHUNKS <- min(nrow(ranges), opts$chunks)
 message("splitting the data into ", CHUNKS, " chunks")
 ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
