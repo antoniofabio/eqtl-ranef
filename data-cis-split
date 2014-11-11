@@ -134,6 +134,39 @@ if(!is.null(opts$gex)) {
 
 }
 
+if(opts$`dump-cisranges`) {
+
+  ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
+  ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
+
+  d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
+
+    offset <- min(start)
+
+    ans <- data.frame(reporterID = reporterID,
+                      from = start - offset + 1,
+                      to = end - offset + 1,
+                      stringsAsFactors = FALSE)
+
+    write.table(ans,
+                file = filename[1],
+                row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+
+  }))
+
+  if(opts$`zip-chunks`) {
+    message("gzipping cis pairs tables...")
+    commands <- sprintf("gzip %s", shQuote(ranges.db$filename))
+    sink(stderr())
+    status <- laply(commands, system, intern = FALSE,
+                    .progress = progress_text(style = 1))
+    sink()
+    stopifnot(all(status == 0))
+    message("done.")
+  }
+
+}
+
 if(!is.null(opts$gt)) {
 
   message("\n=processing genotype data=\n")
@@ -218,39 +251,6 @@ if(!is.null(opts$gt)) {
     sink()
     stopifnot(all(status == 0))
     message("done.")
-  }
-
-  if(opts$`dump-cisranges`) {
-
-    ranges.db <- merge(ranges, subset(chunks, select = c(chunk, folder)))
-    ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
-
-    d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
-
-      offset <- min(start)
-
-      ans <- data.frame(reporterID = reporterID,
-                        from = start - offset + 1,
-                        to = end - offset + 1,
-                        stringsAsFactors = FALSE)
-
-      write.table(ans,
-                  file = filename[1],
-                  row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
-
-    }))
-
-    if(opts$`zip-chunks`) {
-      message("gzipping cis pairs tables...")
-      commands <- sprintf("gzip %s", shQuote(ranges.db$filename))
-      sink(stderr())
-      status <- laply(commands, system, intern = FALSE,
-                      .progress = progress_text(style = 1))
-      sink()
-      stopifnot(all(status == 0))
-      message("done.")
-    }
-
   }
 
   if(opts$`dump-cispairs-db`) {
