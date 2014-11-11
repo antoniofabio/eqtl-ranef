@@ -153,6 +153,7 @@ if(!is.null(opts$gt)) {
 
   TIME_INTERVAL <- as.difftime(1, units = "mins")
   ORIG_TIME <- START_TIME <- Sys.time()
+  START_COUNT <- 0L
 
   repeat {
 
@@ -177,7 +178,10 @@ if(!is.null(opts$gt)) {
     ELAPSED <- CUR_TIME - START_TIME
     if(ELAPSED > TIME_INTERVAL) {
       START_TIME <- CUR_TIME
-      message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME))
+      speed <- (gt.counter - START_COUNT) / as.double(ELAPSED, units = "hours")
+      message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME),
+              " [last split: ", round(speed / 1000), "k SNPs/h]")
+      START_COUNT <- gt.counter
     }
 
   }
