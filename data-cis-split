@@ -149,30 +149,43 @@ if(!is.null(opts$gt)) {
   }))
 
   gt.counter <- 0L
-  gt.snps <- character(1e5)
+
+  if(opts$`dump-cispairs-db`) {
+    gt.snps <- character(1e5)
+  }
+
+  BLOCK_SIZE <- 1000L
+  START_COUNT <- 0L
 
   TIME_INTERVAL <- as.difftime(1, units = "mins")
   ORIG_TIME <- START_TIME <- Sys.time()
-  START_COUNT <- 0L
 
   repeat {
 
-    gt.line <- readLines(gt.con, n = 1)
-    if(length(gt.line) == 0) {
+    BLOCK <- readLines(gt.con, n = BLOCK_SIZE)
+    if(length(BLOCK) == 0) {
       break
     }
-    gt.counter <- gt.counter + 1L
 
-    if(gt.counter > length(gt.snps)) {
-      gt.snps <- c(gt.snps, character(length(gt.snps)))
+    gt.offset <- length(BLOCK)
+    gt.counter <- gt.counter + gt.offset
+
+    if(opts$`dump-cispairs-db`) {
+      if(gt.counter > length(gt.snps)) {
+        gt.snps <- c(gt.snps, character(length(gt.snps)))
+      }
+      gt.snps[seq(gt.counter - gt.offset + 1L, gt.counter)] <-
+          sapply(strsplit(BLOCK, "\t"), "[", 1)
     }
 
-    gt.snps[gt.counter] <- SNPID <- strsplit(gt.line, "\t")[[1]][1]
-    gt.i.chunks <- subset(gt.chunks, start <= gt.counter & end >= gt.counter)
-
-    d_ply(gt.i.chunks, .(chunk), splat(function(filename, ...) {
-      cat(gt.line, "\n", sep = "", file = filename, append = TRUE)
-    }))
+    gt.base <- gt.counter - gt.offset
+    for(cursor in seq_len(gt.offset)) {
+      gt.line <- BLOCK[cursor]
+      gt.i.files <- subset(gt.chunks, start <= (gt.base + cursor) & end >= (gt.base + cursor))$filename
+      for(f in gt.i.files) {
+        cat(gt.line, "\n", sep = "", file = f, append = TRUE)
+      }
+    }
 
     CUR_TIME <- Sys.time()
     ELAPSED <- CUR_TIME - START_TIME
@@ -185,7 +198,10 @@ if(!is.null(opts$gt)) {
     }
 
   }
-  gt.snps <- head(gt.snps, n = gt.counter)
+
+  if(opts$`dump-cispairs-db`) {
+    gt.snps <- head(gt.snps, n = gt.counter)
+  }
 
   CUR_TIME <- Sys.time()
   message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME))
