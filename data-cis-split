@@ -153,7 +153,7 @@ if(opts$`dump-cisranges`) {
 
   if(opts$`zip-chunks`) {
     message("gzipping cis pairs tables...")
-    commands <- sprintf("gzip %s", shQuote(ranges.db$filename))
+    commands <- sprintf("gzip %s 2> /dev/null", shQuote(ranges.db$filename))
     sink(stderr())
     status <- laply(commands, system, intern = FALSE,
                     .progress = progress_text(style = 1))
@@ -241,7 +241,7 @@ if(!is.null(opts$gt)) {
 
   if(opts$`zip-chunks`) {
     message("gzipping genotype data chunks...")
-    commands <- sprintf("gzip %s", shQuote(gt.chunks$filename))
+    commands <- sprintf("gzip %s 2> /dev/null", shQuote(gt.chunks$filename))
     sink(stderr())
     status <- laply(commands, system, intern = FALSE,
                     .progress = progress_text(style = 1))
