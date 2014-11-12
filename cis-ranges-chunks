@@ -18,18 +18,18 @@ parser <- OptionParser(usage = "%prog [options]",
                        option_list = option_list)
 opts <- parse_args(parser, positional_arguments = FALSE)
 
-stopifnot(opts$mode == "gex")
-
 message("options:")
 sink(stderr())
 str(opts)
 sink()
 
 message("reading cis ranges data...")
-ranges <- read.table(file("stdin", open = "r", raw = TRUE),
+con <- file("stdin", open = "r", raw = TRUE)
+ranges <- read.table(con,
                      header = FALSE, sep = "\t", quote = "", comment.char = "",
                      col.names = c("reporterID", "start", "end"),
                      colClasses = c("character", "numeric", "numeric"))
+close(con)
 message("done:")
 sink(stderr())
 str(ranges)
