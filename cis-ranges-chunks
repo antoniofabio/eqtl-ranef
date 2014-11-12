@@ -37,32 +37,127 @@ sink()
 
 CHUNKS <- min(nrow(ranges), opts$chunks)
 message("splitting the data into ", CHUNKS, " chunks")
-ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
-ranges$i <- seq_len(nrow(ranges))
 
-chunks <- ddply(ranges, .(chunk), summarize,
-                gex_start = min(i),
-                gex_end = max(i),
-                gt_start = min(start),
-                gt_end = max(end),
-                num.snps = max(end) - min(start) + 1,
-                num.tests = sum(end) - sum(start) + length(start),
-                num.genes = length(chunk))
 
-message("\nnum. SNPs per chunk:")
-sink(stderr())
-print(summary(chunks$num.snps))
-sink()
+if(opts$mode == "gex") {
 
-message("\nnum. genes per chunk:")
-sink(stderr())
-print(table(chunks$num.genes))
-sink()
+  ranges$chunk <- round(seq(from = 1, to = CHUNKS, length = nrow(ranges)))
+  ranges$i <- seq_len(nrow(ranges))
 
-message("\nnum. tests per chunk:")
-sink(stderr())
-print(summary(chunks$num.tests))
-sink()
+  chunks <- ddply(ranges, .(chunk), summarize,
+                  gex_start = min(i),
+                  gex_end = max(i),
+                  gt_start = min(start),
+                  gt_end = max(end),
+                  num.snps = max(end) - min(start) + 1,
+                  num.tests = sum(end) - sum(start) + length(start),
+                  num.genes = length(chunk))
+
+  message("\nnum. SNPs per chunk:")
+  sink(stderr())
+  print(summary(chunks$num.snps))
+  sink()
+
+  message("\nnum. genes per chunk:")
+  sink(stderr())
+  print(table(chunks$num.genes))
+  sink()
+
+  message("\nnum. tests per chunk:")
+  sink(stderr())
+  print(summary(chunks$num.tests))
+  sink()
+
+} else if (opts$mode == "gt") {
+
+  stop("not implemented yet")
+
+} else if (opts$mode == "tests") {
+
+  totalTests <- with(ranges, sum(end) - sum(start) + length(start))
+  testsPerChunk <- totalTests / CHUNKS
+
+  message(" distributing tests across chunks")
+  set.seed(1234)
+  num.tests <- rep(round(testsPerChunk), CHUNKS)
+  repeat {
+    totalTests <- sum(num.tests)
+    residual <- sum(num.tests) - totalTests
+    if(residual == 0) {
+      break
+    }
+    howMany <- min(residual, CHUNKS)
+    who <- sample.int(n = CHUNKS, size = howMany)
+    num.tests[who] <- num.tests[who] + round(residual / howMany)
+  }
+
+  message(" computing intervals")
+  gex_start <- gex_end <- rep(NA, CHUNKS)
+  gt_start <- gt_end <- rep(NA, CHUNKS)
+
+  gex_start[1] <- gex_end[1] <- 1
+  gt_start[1] <- ranges[1, "start"]
+  for(n in seq_len(CHUNKS)) {
+    ## message("  n = ", n)
+    tests.n <- 0
+    ## message("  tests.n = ", tests.n)
+    repeat {
+      gt_end[n] <- ranges$end[gex_end[n]]
+      ## message("  gex_end[n] = ", gex_end[n])
+      ## message("  gt_end[n] = ", gt_end[n])
+      tests.n <- tests.n + gt_end[n] - ranges$start[gex_end[n]] + 1
+      ## message("  ->tests.n = ", tests.n)
+      if((gex_end[n] == nrow(ranges)) || tests.n >= num.tests[n]) {
+        break
+      }
+      gex_end[n] <- gex_end[n] + 1
+    }
+    residual <- tests.n - num.tests[n]
+    if(n < CHUNKS) {
+      if(residual > 0) {
+        gex_start[n + 1] <- gex_end[n]
+        gt_start[n + 1] <- gt_end[n] - residual + 1
+        gt_end[n] <- gt_end[n] - residual
+      } else {
+        gex_start[n + 1] <- gex_end[n] + 1
+        gt_start[n + 1] <- ranges[gex_start[n + 1], "start"]
+      }
+      gex_end[n + 1] <- gex_start[n + 1]
+    } else {
+      if(residual > 0) {
+        stop("leftover: ", residual, " tests from the last chunk")
+      }
+    }
+  }
+
+  chunks <-
+      data.frame(chunk = seq_len(CHUNKS),
+                 gex_start = gex_start,
+                 gex_end = gex_end,
+                 gt_start = gt_start,
+                 gt_end = gt_end,
+                 num.snps = gt_end - gt_start + 1,
+                 num.tests = num.tests,
+                 num.genes = gex_end - gex_start + 1)
+
+  message("done.")
+
+  message("\nnum. SNPs per chunk:")
+  sink(stderr())
+  print(summary(chunks$num.snps))
+  sink()
+
+  message("\nnum. genes per chunk:")
+  sink(stderr())
+  print(summary(chunks$num.genes))
+  sink()
+
+  message("\nnum. tests per chunk:")
+  sink(stderr())
+  print(table(chunks$num.tests))
+  sink()
+
+}
 
 message("")
 
