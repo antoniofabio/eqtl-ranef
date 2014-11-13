@@ -214,9 +214,9 @@ if(!is.null(opts$gt)) {
     ELAPSED <- CUR_TIME - START_TIME
     if(ELAPSED > TIME_INTERVAL) {
       START_TIME <- CUR_TIME
-      speed <- (gt.counter - START_COUNT) / as.double(ELAPSED, units = "mins")
+      speed <- (gt.counter - START_COUNT) / as.double(ELAPSED, units = "hours")
       message(gt.counter, " SNPs processed in ", format(CUR_TIME - ORIG_TIME),
-              " [last split: ", round(speed / 1e6, 1), "M SNPs/m]")
+              " [last split: ", round(speed / 1e6, 1), "M SNPs/h]")
       START_COUNT <- gt.counter
     }
 
