@@ -93,7 +93,8 @@ if(!is.null(opts$gex)) {
                 sep = "\t",
                 quote = FALSE,
                 row.names = FALSE, col.names = TRUE)
-  }))
+  }),
+        .progress = progress_text(style = 1))
   message("done.")
 
 }
@@ -120,6 +121,8 @@ if(opts$`dump-cisranges` || opts$`dump-cispairs-db`) {
 
 if(opts$`dump-cisranges`) {
 
+  message("dumping cis-ranges data...")
+
   ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
 
   d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
@@ -143,7 +146,9 @@ if(opts$`dump-cisranges`) {
                 file = outCon,
                 row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
 
-  }))
+  }), .progress = progress_text(style = 1))
+
+  message("done.")
 
 }
 
@@ -268,7 +273,8 @@ if(!is.null(opts$gt)) {
       ignore <- dbGetQuery(db, "create index snpIdx on pairs(SNPID)")
       dbDisconnect(db)
 
-    }))
+    }),
+          .progress = progress_text(style = 1))
 
     message("done.\n")
 
