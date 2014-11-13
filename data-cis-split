@@ -111,11 +111,12 @@ if(opts$`dump-cisranges` || opts$`dump-cispairs-db`) {
   str(ranges)
   sink()
 
+  message("merging ranges and chunks data...")
   ranges$i <- seq_len(nrow(ranges))
-
   ranges.db <-
       subset(merge(ranges, subset(chunks, select = c(chunk, gex_start, gex_end, folder))),
              i >= gex_start & i <= gex_end)
+  message("done.")
 
 }
 
