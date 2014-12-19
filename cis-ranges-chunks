@@ -74,6 +74,9 @@ if(opts$mode == "gex") {
 
 } else if (opts$mode == "tests") {
 
+  stop("TODO")
+  ## this is much more complicated than it initially appeared
+
   totalTests <- with(ranges, sum(end) - sum(start) + length(start))
   testsPerChunk <- totalTests / CHUNKS
   message(" total number of tests: ", totalTests)
@@ -130,6 +133,12 @@ if(opts$mode == "gex") {
     if(n < CHUNKS) {
 
       if(residual > 0) {
+
+        stop("TODO")
+        ## at this point, a strategy needs to be implemented to:
+        ## a) select which genes will be pruned, and how much so
+        ## b) modify the cis-ranges table accordingly, by splitting up
+        ##    too bulky ranges
 
         gex_start[n + 1] <- gex_end[n]
         gt_start[n + 1] <- gt_start[n]
