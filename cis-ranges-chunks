@@ -9,7 +9,7 @@ options(stringsAsFactors = FALSE)
 
 option_list <-
     list(
-        make_option("--mode", help = "fixed number of genes per chunk; one of: gex, gt, tests [default: 'gex']", default = "gex"),
+        make_option("--mode", help = "chunks splitting mode; one of: gex, gt, tests [default: 'gex']", default = "gex"),
         make_option("--chunks", help = "num. chunks [default: 1000]", default = 1000)
         )
 
