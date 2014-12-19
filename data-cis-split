@@ -106,17 +106,11 @@ if(opts$`dump-cisranges` || opts$`dump-cispairs-db`) {
                        header = FALSE, sep = "\t", quote = "", comment.char = "",
                        col.names = c("reporterID", "start", "end"),
                        colClasses = c("character", "numeric", "numeric"))
+  ranges$i <- seq_len(nrow(ranges))
   message("done:")
   sink(stderr())
   str(ranges)
   sink()
-
-  message("merging ranges and chunks data...")
-  ranges$i <- seq_len(nrow(ranges))
-  ranges.db <-
-      subset(merge(ranges, subset(chunks, select = c(chunk, gex_start, gex_end, folder))),
-             i >= gex_start & i <= gex_end)
-  message("done.")
 
 }
 
@@ -124,9 +118,19 @@ if(opts$`dump-cisranges`) {
 
   message("dumping cis-ranges data...")
 
-  ranges.db$filename <- file.path(ranges.db$folder, "cisRanges.tab")
+  for(chk in unique(chunks$chunk)) {
 
-  d_ply(ranges.db, .(chunk), splat(function(reporterID, start, end, filename, ...) {
+    chunk <- subset(chunks, chunk == chk)
+    rng <- subset(ranges, i >= min(chunk$gex_start) & i <= max(chunk$gex_end))
+    if((nrow(chunk) == 0) || nrow(rng) == 0) {
+      next
+    }
+    rng <- merge(rng, subset(chunk, select = c(chunk, gex_start, gex_end, folder)))
+
+    filename <- file.path(rng$folder, "cisRanges.tab")
+    reporterID <- rng$reporterID
+    start <- rng$start
+    end <- rng$end
 
     offset <- min(start)
 
@@ -141,13 +145,14 @@ if(opts$`dump-cisranges`) {
     } else {
       file(outFile, open = "w")
     }
-    on.exit(close(outCon))
 
     write.table(ans,
                 file = outCon,
                 row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
 
-  }), .progress = progress_text(style = 1))
+    close(outCon)
+
+  }
 
   message("done.")
 
@@ -253,9 +258,22 @@ if(!is.null(opts$gt)) {
     message("dumping cispairs db files...")
     driver <- dbDriver("SQLite")
 
-    ranges.db$filename <- file.path(ranges.db$folder, "cispairs.sqlite")
+    for(chk in unique(chunks$chunk)) {
 
-    d_ply(ranges.db, .(chunk), splat(function(filename, reporterID, start, end, ...) {
+      chunk <- subset(chunks, chunk == chk)
+      rng <- subset(ranges, i >= min(chunk$gex_start) & i <= max(chunk$gex_end))
+      if((nrow(chunk) == 0) || nrow(rng) == 0) {
+        next
+      }
+      rng <- merge(rng, subset(chunk, select = c(chunk, gex_start, gex_end, folder)))
+
+      filename <- file.path(rng$folder, "cispairs.sqlite")
+      sink(stderr())
+      str(rng)
+      sink()
+      reporterID <- rng$reporterID
+      start <- rng$start
+      end <- rng$end
 
       pairs <- ddply(data.frame(reporterID, start, end),
                      .(reporterID), summarize,
@@ -274,8 +292,7 @@ if(!is.null(opts$gt)) {
       ignore <- dbGetQuery(db, "create index snpIdx on pairs(SNPID)")
       dbDisconnect(db)
 
-    }),
-          .progress = progress_text(style = 1))
+    }
 
     message("done.\n")
 
