@@ -101,7 +101,7 @@ LOG " [spitting]"
   --output-prefix="${TMPD}/chunks/" \
   --dump-cispairs-db \
   --zip-chunks \
-  2> /dev/null
+  2> /dev/null \
   > /dev/null
 
 LOG ""
