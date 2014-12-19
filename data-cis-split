@@ -167,10 +167,7 @@ if(!is.null(opts$gt)) {
   stopifnot(length(gt.header) > 0)
 
   gt.chunks <- chunks
-  gt.chunks$filename <- file.path(gt.chunks$folder, "genotype.fat")
-  d_ply(gt.chunks, .(chunk), splat(function(filename, ...) {
-    cat(gt.header, "\n", sep = "", file = filename, append = FALSE)
-  }))
+  gt.chunks$filename <- file.path(gt.chunks$folder, if(opts$`zip-chunks`) "genotype.fat.gz" else "genotype.fat")
 
   gt.counter <- 0L
 
@@ -183,6 +180,9 @@ if(!is.null(opts$gt)) {
 
   TIME_INTERVAL <- as.difftime(10, units = "secs")
   ORIG_TIME <- START_TIME <- Sys.time()
+
+  gtConnections <- vector(mode = "list", length  = nrow(gt.chunks))
+  names(gtConnections) <- gt.chunks$filename
 
   repeat {
 
@@ -205,13 +205,46 @@ if(!is.null(opts$gt)) {
     gt.base <- gt.counter - gt.offset
 
     gt.i.chunks <- subset(gt.chunks, !((gt_end < (gt.base + 1)) | (gt_start > gt.counter)))
+
+    previouslyOpenConnections <- names(gtConnections)[!sapply(gtConnections, is.null)]
+    message("  previously opened connections:")
+    sink(stderr())
+    str(previouslyOpenConnections)
+    sink()
+
+    toBeClosed <- setdiff(previouslyOpenConnections, gt.i.chunks$filename)
+    message("  to be closed:")
+    sink(stderr())
+    str(toBeClosed)
+    sink()
+    gtConnections[toBeClosed] <- lapply(gtConnections[toBeClosed], function(con) {
+      close(con)
+      return(NULL)
+    })
+
+    toBeOpened <- setdiff(gt.i.chunks$filename, previouslyOpenConnections)
+    message("  to be opened:")
+    sink(stderr())
+    str(toBeOpened)
+    sink()
+    for(fn in toBeOpened) {
+      gtConnections[[ fn ]] <-
+          if(opts$`zip-chunks`) {
+            gzfile(fn, open = "w")
+          } else {
+            file(fn, open = "w")
+          }
+      writeLines(gt.header, con = gtConnections[[ fn ]])
+    }
+
     for(i in seq_len(nrow(gt.i.chunks))) {
       ch <- gt.i.chunks[i, ]
       A <- max(ch$gt_start - gt.base, 1)
       B <- min(ch$gt_end - gt.base, gt.offset)
       if(B >= A) {
         block.i <- BLOCK[seq(A, B)]
-        cat(paste(block.i, collapse = "\n"), file = ch$filename, append = TRUE)
+        writeLines(paste(block.i, collapse = "\n"),
+                   con = gtConnections[[ ch$filename ]])
       }
     }
 
@@ -227,6 +260,9 @@ if(!is.null(opts$gt)) {
 
   }
 
+  ## close all remaining gt files connections
+  l_ply(Filter(Negate(is.null), gtConnections), close)
+
   if(opts$`dump-cispairs-db`) {
     gt.snps <- head(gt.snps, n = gt.counter)
   }
@@ -236,17 +272,6 @@ if(!is.null(opts$gt)) {
   message("")
 
   close(gt.con)
-
-  if(opts$`zip-chunks`) {
-    message("gzipping genotype data chunks...")
-    commands <- sprintf("gzip %s 2> /dev/null", shQuote(gt.chunks$filename))
-    sink(stderr())
-    status <- laply(commands, system, intern = FALSE,
-                    .progress = progress_text(style = 1))
-    sink()
-    stopifnot(all(status == 0))
-    message("done.")
-  }
 
   if(opts$`dump-cispairs-db`) {
 
