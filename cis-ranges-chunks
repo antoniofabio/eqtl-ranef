@@ -100,31 +100,50 @@ if(opts$mode == "gex") {
 
   gex_start[1] <- gex_end[1] <- 1
   gt_start[1] <- ranges[1, "start"]
+
   for(n in seq_len(CHUNKS)) {
+
     message("\n\n  n = ", n)
+
     tests.n <- 0
+
     repeat {
+
       gt_end[n] <- max(gt_end[n], ranges$end[gex_end[n]])
-      tests.n <- tests.n + gt_end[n] - ranges$start[ gex_end[n] ] + 1
-      message("\n  g(", gex_start[n], ",", gex_end[n], ")",
+
+      tests.newlyAdded <-
+          ranges[gex_end[n], "end"] - ranges[gex_end[n], "start"] + 1L
+
+      tests.n <- tests.n + tests.newlyAdded
+
+      message("g(", gex_start[n], ",", gex_end[n], ")",
               "-l(", gt_start[n], ",", gt_end[n], ")",
               "=> ", tests.n)
       if((gex_end[n] == nrow(ranges)) || tests.n >= num.tests[n]) {
         break
       }
       gex_end[n] <- gex_end[n] + 1
+
     }
+
     residual <- tests.n - num.tests[n]
     if(n < CHUNKS) {
+
       if(residual > 0) {
-        gex_start[n + 1] <- gex_start[n]
-        gt_start[n + 1] <- gt_end[n] - residual + 1
+
+        gex_start[n + 1] <- gex_end[n]
+        gt_start[n + 1] <- gt_start[n]
         gt_end[n] <- gt_end[n] - residual
+
       } else {
+
         gex_start[n + 1] <- gex_end[n] + 1
         gt_start[n + 1] <- ranges[gex_start[n + 1], "start"]
+
       }
+
       gex_end[n + 1] <- gex_start[n + 1]
+
     } else {
       if(residual > 0) {
         stop("leftover: ", residual, " tests from the last chunk")
