@@ -76,37 +76,39 @@ if(opts$mode == "gex") {
 
   totalTests <- with(ranges, sum(end) - sum(start) + length(start))
   testsPerChunk <- totalTests / CHUNKS
+  message(" total number of tests: ", totalTests)
+  message(" average number of tests per chunk: ", testsPerChunk)
 
   message(" distributing tests across chunks")
   set.seed(1234)
   num.tests <- rep(round(testsPerChunk), CHUNKS)
   repeat {
-    totalTests <- sum(num.tests)
-    residual <- sum(num.tests) - totalTests
+    residual <- totalTests - sum(num.tests)
     if(residual == 0) {
       break
     }
     howMany <- min(residual, CHUNKS)
+    message("  redistributing ", howMany, " residual tests across ",
+            CHUNKS, " chunks")
     who <- sample.int(n = CHUNKS, size = howMany)
     num.tests[who] <- num.tests[who] + round(residual / howMany)
   }
 
   message(" computing intervals")
   gex_start <- gex_end <- rep(NA, CHUNKS)
-  gt_start <- gt_end <- rep(NA, CHUNKS)
+  gt_start <- gt_end <- rep(-1L, CHUNKS)
 
   gex_start[1] <- gex_end[1] <- 1
   gt_start[1] <- ranges[1, "start"]
   for(n in seq_len(CHUNKS)) {
-    ## message("  n = ", n)
+    message("\n\n  n = ", n)
     tests.n <- 0
-    ## message("  tests.n = ", tests.n)
     repeat {
-      gt_end[n] <- ranges$end[gex_end[n]]
-      ## message("  gex_end[n] = ", gex_end[n])
-      ## message("  gt_end[n] = ", gt_end[n])
-      tests.n <- tests.n + gt_end[n] - ranges$start[gex_end[n]] + 1
-      ## message("  ->tests.n = ", tests.n)
+      gt_end[n] <- max(gt_end[n], ranges$end[gex_end[n]])
+      tests.n <- tests.n + gt_end[n] - ranges$start[ gex_end[n] ] + 1
+      message("\n  g(", gex_start[n], ",", gex_end[n], ")",
+              "-l(", gt_start[n], ",", gt_end[n], ")",
+              "=> ", tests.n)
       if((gex_end[n] == nrow(ranges)) || tests.n >= num.tests[n]) {
         break
       }
@@ -115,7 +117,7 @@ if(opts$mode == "gex") {
     residual <- tests.n - num.tests[n]
     if(n < CHUNKS) {
       if(residual > 0) {
-        gex_start[n + 1] <- gex_end[n]
+        gex_start[n + 1] <- gex_start[n]
         gt_start[n + 1] <- gt_end[n] - residual + 1
         gt_end[n] <- gt_end[n] - residual
       } else {
@@ -140,7 +142,7 @@ if(opts$mode == "gex") {
                  num.tests = num.tests,
                  num.genes = gex_end - gex_start + 1)
 
-  message("done.")
+  message("\ndone.")
 
   message("\nnum. SNPs per chunk:")
   sink(stderr())
