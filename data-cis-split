@@ -207,26 +207,14 @@ if(!is.null(opts$gt)) {
     gt.i.chunks <- subset(gt.chunks, !((gt_end < (gt.base + 1)) | (gt_start > gt.counter)))
 
     previouslyOpenConnections <- names(gtConnections)[!sapply(gtConnections, is.null)]
-    message("  previously opened connections:")
-    sink(stderr())
-    str(previouslyOpenConnections)
-    sink()
 
     toBeClosed <- setdiff(previouslyOpenConnections, gt.i.chunks$filename)
-    message("  to be closed:")
-    sink(stderr())
-    str(toBeClosed)
-    sink()
     gtConnections[toBeClosed] <- lapply(gtConnections[toBeClosed], function(con) {
       close(con)
       return(NULL)
     })
 
     toBeOpened <- setdiff(gt.i.chunks$filename, previouslyOpenConnections)
-    message("  to be opened:")
-    sink(stderr())
-    str(toBeOpened)
-    sink()
     for(fn in toBeOpened) {
       gtConnections[[ fn ]] <-
           if(opts$`zip-chunks`) {
