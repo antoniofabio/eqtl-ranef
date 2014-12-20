@@ -1,0 +1,78 @@
+#!/bin/bash
+
+set -u
+
+D=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+source ${D}/shflags
+
+DEFINE_string gex_data 'gex.dat' "expression data file"
+DEFINE_string gex_pos 'gex.pos' "expression position file"
+DEFINE_string gt_data 'gt.dat' "genotype data file"
+DEFINE_string gt_pos 'gt.pos' "genotype positions file"
+DEFINE_integer cis_window 50000 "cis window size"
+DEFINE_integer chunks 1000 "num. chunks"
+DEFINE_string out 'OUT' "output folder"
+
+error() {
+  local parent_lineno="$1"
+  local message="$2"
+  local code="${3:-1}"
+  if [[ -n "$message" ]] ; then
+    echo "Error on or near line ${parent_lineno}: ${message}; exiting with status ${code}"
+  else
+    echo "Error on or near line ${parent_lineno}; exiting with status ${code}"
+  fi
+  exit "${code}"
+}
+trap 'error ${LINENO} error' ERR
+
+set -e
+set -o pipefail
+
+FLAGS "$@" || exit $?
+eval set -- "${FLAGS_ARGV}"
+
+CIS_WINDOW=${FLAGS_cis_window}
+NUM_CHUNKS=${FLAGS_chunks}
+GEX_DATA=${FLAGS_gex_data}
+GEX_POS=${FLAGS_gex_pos}
+GT_DATA=${FLAGS_gt_data}
+GT_POS=${FLAGS_gt_pos}
+OUTPUT_FOLDER=${FLAGS_out}
+
+mkdir -p ${OUTPUT_FOLDER}
+
+##
+echo = select and sort annotated probes/SNPs which are actually present in the corresponding data files =
+##
+join -t '	' <(cut -f 1 ${GEX_DATA} | sed 1d | sort) <(sort -k1,1 ${GEX_POS}) \
+  | ${D}/table-sort-genomic > ${OUTPUT_FOLDER}/gex.pos &
+join -t '	' <(cut -f 1 ${GT_DATA} | sed 1d | sort) <(sort -k1,1 ${GT_POS}) \
+  | ${D}/table-sort-genomic > ${OUTPUT_FOLDER}/gt.pos &
+wait
+
+##
+echo = compute genome-wide cis information =
+##
+${D}/data-cis-ranges ${OUTPUT_FOLDER}/gt.pos ${CIS_WINDOW} \
+  < ${OUTPUT_FOLDER}/gex.pos \
+  > ${OUTPUT_FOLDER}/cisRanges.tab 2> ${OUTPUT_FOLDER}/cisRanges.log
+
+##
+echo = compute chunks =
+##
+${D}/cis-ranges-chunks --chunks=${NUM_CHUNKS} < ${OUTPUT_FOLDER}/cisRanges.tab \
+  > ${OUTPUT_FOLDER}/chunksSpec.tab 2> ${OUTPUT_FOLDER}/chunksSpec.log
+
+##
+echo = write chunks data on disk =
+##
+${D}/data-cis-split \
+  --chunks=${OUTPUT_FOLDER}/chunksSpec.tab \
+  --output-prefix="${OUTPUT_FOLDER}/chunks/" \
+  --gex=<(${D}/table-subset-ordered -a ${OUTPUT_FOLDER}/cisRanges.tab < ${GEX_DATA} 2> /dev/null) \
+  --gt=<(${D}/table-subset-ordered -a ${OUTPUT_FOLDER}/gt.pos < ${GT_DATA} 2> /dev/null) \
+  --cis-ranges=${OUTPUT_FOLDER}/cisRanges.tab \
+  --dump-cispairs-db \
+  --zip
