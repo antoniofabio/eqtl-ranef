@@ -70,12 +70,16 @@ if(!is.null(opts$gex)) {
   message("\n=processing expression data=\n")
 
   message("reading full expression data in memory...")
-  gex.fields <- strsplit(readLines(opts$gex, n = 1), "\t")[[1]]
-  gex <- read.table(opts$gex,
+  gex.con <- file(opts$gex, open = "r", raw = TRUE)
+  gex.header <- readLines(gex.con, n = 1)
+  pushBack(gex.header, connection = gex.con)
+  gex.fields <- strsplit(gex.header, "\t")[[1]]
+  gex <- read.table(gex.con,
                     header = TRUE,
                     col.names = gex.fields,
                     colClasses = c("character", rep("numeric", length(gex.fields) - 1)),
                     check.names = FALSE)
+  close(gex.con)
   message("done.")
 
   message("writing chunks on disk...")
