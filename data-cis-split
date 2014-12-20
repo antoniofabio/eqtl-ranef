@@ -281,9 +281,6 @@ if(!is.null(opts$gt)) {
       rng <- merge(rng, subset(chunk, select = c(chunk, gex_start, gex_end, folder)))
 
       filename <- file.path(rng$folder, "cispairs.sqlite")
-      sink(stderr())
-      str(rng)
-      sink()
       reporterID <- rng$reporterID
       start <- rng$start
       end <- rng$end
