@@ -100,7 +100,7 @@ LOG " [spitting]"
   --cis-ranges=${TMPD}/cisRanges.tab \
   --output-prefix="${TMPD}/chunks/" \
   --dump-cispairs-db \
-  --zip-chunks \
+  --zip \
   2> /dev/null \
   > /dev/null
 

@@ -16,7 +16,7 @@ option_list <-
         make_option("--cis-ranges", help = "cis ranges table", default = NULL),
         make_option("--dump-cisranges", help = "write out cis ranges tab files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--dump-cispairs-db", help = "write out cis pairs db files [default: FALSE]", action = "store_true", default = FALSE),
-        make_option("--zip-chunks", help = "gzip expression and genotype files [default: FALSE]", action = "store_true", default = FALSE)
+        make_option("--zip", help = "gzip expression and genotype files [default: FALSE]", action = "store_true", default = FALSE)
         )
 
 parser <- OptionParser(usage = "%prog [options]",
@@ -82,7 +82,7 @@ if(!is.null(opts$gex)) {
   d_ply(chunks, .(chunk), splat(function(chunk, gex_start, gex_end, folder, ...) {
     gex.chunk <- gex[seq(gex_start, gex_end),, drop = FALSE]
     outFile <- file.path(folder, "expression.fat")
-    outCon <- if(opts$`zip-chunks`) {
+    outCon <- if(opts$zip) {
       gzfile(paste0(outFile, ".gz"), open = "w")
     } else {
       file(outFile, open = "w")
@@ -140,7 +140,7 @@ if(opts$`dump-cisranges`) {
                       stringsAsFactors = FALSE)
 
     outFile <- filename[1]
-    outCon <- if(opts$`zip-chunks`) {
+    outCon <- if(opts$zip) {
       gzfile(paste0(outFile, ".gz"), open = "w")
     } else {
       file(outFile, open = "w")
@@ -167,7 +167,7 @@ if(!is.null(opts$gt)) {
   stopifnot(length(gt.header) > 0)
 
   gt.chunks <- chunks
-  gt.chunks$filename <- file.path(gt.chunks$folder, if(opts$`zip-chunks`) "genotype.fat.gz" else "genotype.fat")
+  gt.chunks$filename <- file.path(gt.chunks$folder, if(opts$zip) "genotype.fat.gz" else "genotype.fat")
 
   gt.counter <- 0L
 
@@ -217,7 +217,7 @@ if(!is.null(opts$gt)) {
     toBeOpened <- setdiff(gt.i.chunks$filename, previouslyOpenConnections)
     for(fn in toBeOpened) {
       gtConnections[[ fn ]] <-
-          if(opts$`zip-chunks`) {
+          if(opts$zip) {
             gzfile(fn, open = "w")
           } else {
             file(fn, open = "w")
