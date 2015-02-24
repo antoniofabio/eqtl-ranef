@@ -72,7 +72,7 @@ ${D}/data-cis-split \
   --chunks=${OUTPUT_FOLDER}/chunksSpec.tab \
   --output-prefix="${OUTPUT_FOLDER}/chunks/" \
   --gex=<(${D}/table-subset-ordered -a ${OUTPUT_FOLDER}/cisRanges.tab < ${GEX_DATA} 2> /dev/null) \
-  --pos-gex=<(${D}/table-subset-ordered -a ${OUTPUT_FOLDER}/cisRanges.tab < ${GEX_POS} 2> /dev/null) \
+  --pos-gex=<(${D}/table-subset-ordered ${OUTPUT_FOLDER}/cisRanges.tab < ${GEX_POS} 2> /dev/null) \
   --gt=<(${D}/table-subset-ordered -a ${OUTPUT_FOLDER}/gt.pos < ${GT_DATA} 2> /dev/null) \
   --pos-gt=${OUTPUT_FOLDER}/gt.pos \
   --cis-ranges=${OUTPUT_FOLDER}/cisRanges.tab \
