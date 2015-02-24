@@ -16,8 +16,8 @@ option_list <-
         make_option("--cis-ranges", help = "cis ranges table", default = NULL),
         make_option("--dump-cisranges", help = "write out cis ranges tab files [default: FALSE]", action = "store_true", default = FALSE),
         make_option("--dump-cispairs-db", help = "write out cis pairs db files [default: FALSE]", action = "store_true", default = FALSE),
-        make_option("--gex-pos", help = "expression data positions annotation [optional]", default = NULL),
-        make_option("--gt-pos", help = "genotype data positions annotation [optional]", default = NULL),
+        make_option("--pos-gex", help = "expression data positions annotation [optional]", default = NULL),
+        make_option("--pos-gt", help = "genotype data positions annotation [optional]", default = NULL),
         make_option("--zip", help = "gzip expression and genotype files [default: FALSE]", action = "store_true", default = FALSE)
         )
 
@@ -41,8 +41,16 @@ if(!is.null(opts$gex)) {
   stopifnot(file.exists(opts$gex))
 }
 
+if(!is.null(opts$`pos-gex`)) {
+  stopifnot(file.exists(opts$`pos-gex`))
+}
+
 if(!is.null(opts$gt)) {
   stopifnot(file.exists(opts$gt))
+}
+
+if(!is.null(opts$`pos-gt`)) {
+  stopifnot(file.exists(opts$`pos-gt`))
 }
 
 if(!is.null(opts$`cis-ranges`)) {
@@ -105,12 +113,12 @@ if(!is.null(opts$gex)) {
 
 }
 
-if(!is.null(opts$`gex-pos`)) {
+if(!is.null(opts$`pos-gex`)) {
 
-  message("\n=processing expression annotation =\n")
+  message("\n=processing expression annotation=\n")
 
   message("reading full expression annotation in memory...")
-  gex.pos <- read.table(opts$`gex-pos`,
+  gex.pos <- read.table(opts$`pos-gex`,
                         header = FALSE,
                         col.names = c("reporterID", "chromosome", "start", "stop"),
                         colClasses = c("character", "character", "numeric", "numeric"),
@@ -119,8 +127,7 @@ if(!is.null(opts$`gex-pos`)) {
 
   message("writing chunks on disk...")
   d_ply(chunks, .(chunk), splat(function(chunk, gex_start, gex_end, folder, ...) {
-    reporterIDs <- rownames(gex)[seq(gex_start, gex_end)]
-    gexPos.chunk <- subset(gex.pos, reporterID %in% reporterIDs)
+    gex.pos.chunk <- gex.pos[seq(gex_start, gex_end), ]
     outFile <- file.path(folder, "expression.pos")
     outCon <- if(opts$zip) {
       gzfile(paste0(outFile, ".gz"), open = "w")
@@ -128,7 +135,7 @@ if(!is.null(opts$`gex-pos`)) {
       file(outFile, open = "w")
     }
     on.exit(close(outCon))
-    write.table(gexPos.chunk,
+    write.table(gex.pos.chunk,
                 file = outCon,
                 sep = "\t",
                 quote = FALSE,
@@ -350,11 +357,11 @@ if(!is.null(opts$gt)) {
 
 }
 
-if(!is.null(opts$`gt-pos`)) {
+if(!is.null(opts$`pos-gt`)) {
 
   message("\n=processing genotype annotation=\n")
 
-  gt.con <- file(opts$gt, open = "r", raw = TRUE)
+  gt.con <- file(opts$`pos-gt`, open = "r", raw = TRUE)
 
   gt.chunks <- chunks
   gt.chunks$filename <- file.path(gt.chunks$folder, if(opts$zip) "genotype.pos.gz" else "genotype.pos")
@@ -400,7 +407,6 @@ if(!is.null(opts$`gt-pos`)) {
           } else {
             file(fn, open = "w")
           }
-      writeLines(gt.header, con = gtConnections[[ fn ]])
     }
 
     for(i in seq_len(nrow(gt.i.chunks))) {
