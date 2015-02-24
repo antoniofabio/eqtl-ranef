@@ -118,12 +118,17 @@ if(!is.null(opts$`pos-gex`)) {
   message("\n=processing expression annotation=\n")
 
   message("reading full expression annotation in memory...")
-  gex.pos <- read.table(opts$`pos-gex`,
+  gex.pos.con <- file(opts$`pos-gex`, open = "r", raw = TRUE)
+  gex.pos <- read.table(gex.pos.con,
                         header = FALSE,
                         col.names = c("reporterID", "chromosome", "start", "stop"),
                         colClasses = c("character", "character", "numeric", "numeric"),
                         check.names = FALSE)
-  message("done.")
+  close(gex.pos.con)
+  message("done:")
+  sink(stderr())
+  str(gex.pos)
+  sink()
 
   message("writing chunks on disk...")
   d_ply(chunks, .(chunk), splat(function(chunk, gex_start, gex_end, folder, ...) {
