@@ -44,9 +44,11 @@ SUMMARIES <-
           tryCatch({
             B <- coefficients(summary(FITTER$fit(formula, data = dat)))
             out <- B["alleleCopyNumber",, drop = FALSE]
-            subset(data.frame(pvalue = out[, "Pr(>|t|)"],
+            tValue <- out[, "t value"]
+            pValue <- 2 * pt(abs(tValue), df = nrow(dat) - nrow(B), lower.tail = FALSE)
+            subset(data.frame(pvalue = pValue,
                               beta = out[, "Estimate"],
-                              t = out[, "t value"],
+                              t = tValue,
                               nobs = nrow(dat)),
                    pvalue <= pvalue.max)
           }, error = function(e) {
@@ -65,10 +67,12 @@ SUMMARIES <-
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
             interactionTerms <- sub("^alleleCopyNumber:", ":", copyNumberTerms)
             out <- B[copyNumberTerms,, drop = FALSE]
+            tValue <- out[, "t value"]
+            pValue <- 2 * pt(abs(tValue), df = nrow(dat) - nrow(B), lower.tail = FALSE)
 
-            ans <- data.frame(pvalue = out[, "Pr(>|t|)"],
+            ans <- data.frame(pvalue = pValue,
                               beta = out[, "Estimate"],
-                              t = out[, "t value"],
+                              t = tValue,
                               nobs = nrow(dat),
                               interactionTerm = interactionTerms,
                               stringsAsFactors = FALSE)
@@ -93,7 +97,6 @@ suppressMessages({
   library(reshape)
   library(plyr)
   library(lme4)
-  library(lmerTest)
 })
 
 option_list <-
