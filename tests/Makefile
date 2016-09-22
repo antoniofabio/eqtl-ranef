@@ -1,4 +1,4 @@
-TESTS:=$(wildcard test-*.sh)
+TESTS:=$(shell ls test-*.sh)
 TESTS:=$(TESTS:test-%.sh=%)
 
 OBSERVED:=$(TESTS:%=observed/%.stdout)
