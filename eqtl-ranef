@@ -37,18 +37,26 @@ FITTER <- FITTERS$DEFAULT
 ##
 ## MODEL SUMMARY FUNCTIONS
 ##
+coefficientsSummaries <- function(obj, nobs) {
+  B <- coefficients(summary(obj))
+  if(!("Pr(>|t|)" %in% colnames(B))) {
+    tValue <- B[, "t value"]
+    pValue <- 2 * pt(abs(tValue), df = nobs - nrow(B), lower.tail = FALSE)
+    B <- cbind(B, `Pr(>|t|)` = pValue)
+  }
+  return(B)
+}
+
 SUMMARIES <-
     list(
 
         DEFAULT = list(fitter = function(dat) {
           tryCatch({
-            B <- coefficients(summary(FITTER$fit(formula, data = dat)))
+            B <- coefficientsSummaries(FITTER$fit(formula, data = dat), nobs = nrow(dat))
             out <- B["alleleCopyNumber",, drop = FALSE]
-            tValue <- out[, "t value"]
-            pValue <- 2 * pt(abs(tValue), df = nrow(dat) - nrow(B), lower.tail = FALSE)
-            subset(data.frame(pvalue = pValue,
+            subset(data.frame(pvalue = out[, "Pr(>|t|)"],
                               beta = out[, "Estimate"],
-                              t = tValue,
+                              t = out[, "t value"],
                               nobs = nrow(dat)),
                    pvalue <= pvalue.max)
           }, error = function(e) {
@@ -63,16 +71,14 @@ SUMMARIES <-
             fit.full <- FITTER$fit(formula, data = dat) ## including interaction terms
             fit.base <- FITTER$fit(formula.baseline, data = dat) ## main effects only
 
-            B <- coefficients(summary(fit.full))
+            B <- coefficientsSummaries(fit.full, nobs = nrow(dat))
             copyNumberTerms <- grep("^alleleCopyNumber", rownames(B), value = TRUE)
             interactionTerms <- sub("^alleleCopyNumber:", ":", copyNumberTerms)
             out <- B[copyNumberTerms,, drop = FALSE]
-            tValue <- out[, "t value"]
-            pValue <- 2 * pt(abs(tValue), df = nrow(dat) - nrow(B), lower.tail = FALSE)
 
-            ans <- data.frame(pvalue = pValue,
+            ans <- data.frame(pvalue = out[, "Pr(>|t|)"],
                               beta = out[, "Estimate"],
-                              t = tValue,
+                              t = out[, "t value"],
                               nobs = nrow(dat),
                               interactionTerm = interactionTerms,
                               stringsAsFactors = FALSE)
