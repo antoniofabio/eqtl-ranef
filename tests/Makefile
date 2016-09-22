@@ -7,7 +7,7 @@ REPORTS:=$(TESTS:%=report-%)
 
 .DEFAULT: reports
 
-SHELL:="/bin/bash"
+SHELL:=/bin/bash
 
 # debugging support
 # OLD_SHELL := $(SHELL)
