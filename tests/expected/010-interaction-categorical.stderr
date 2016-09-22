@@ -23,28 +23,28 @@ reading random effects data...
 done:
 'data.frame':	7 obs. of  2 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+ $ R1      : chr  "subj1" "subj1" "subj2" "subj2" ...
 merging covariates data...
 'data.frame':	7 obs. of  2 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
+ $ R1      : chr  "subj1" "subj1" "subj2" "subj2" ...
 reading interaction effects data...
 done:
 'data.frame':	7 obs. of  2 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ FI1     : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2
+ $ FI1     : chr  "A" "A" "A" "A" ...
 merging covariates data...
 'data.frame':	7 obs. of  3 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ R1      : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5
- $ FI1     : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2
+ $ R1      : chr  "subj1" "subj1" "subj2" "subj2" ...
+ $ FI1     : chr  "A" "A" "A" "A" ...
 merging outcomes data...
 'data.frame':	14 obs. of  5 variables:
  $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
  $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
  $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
- $ R1        : Factor w/ 5 levels "subj1","subj2",..: 1 1 2 2 3 4 5 1 1 2 ...
- $ FI1       : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2 1 1 1 ...
+ $ R1        : chr  "subj1" "subj1" "subj2" "subj2" ...
+ $ FI1       : chr  "A" "A" "A" "A" ...
 model formula:
 expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber * 
     FI1
@@ -53,43 +53,45 @@ expression ~ alleleCopyNumber + (1 | R1) + alleleCopyNumber +
     FI1
 
 checking input data format...
-OK. detected 1 samples:
- chr "subj1-measure1"
+OK. detected 7 samples:
+ chr [1:7] "subj1-measure1" "subj1-measure2" "subj2-measure1" ...
 output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'interactionTerm', 'isCis'
 session info:
-R version 3.1.1 Patched (2014-08-16 r66408)
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R version 3.2.3 (2015-12-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 16.04.1 LTS
 
 locale:
  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
- [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
- [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [5] LC_MONETARY=pl_PL.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=pl_PL.UTF-8       LC_NAME=C                 
  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+[11] LC_MEASUREMENT=pl_PL.UTF-8 LC_IDENTIFICATION=C       
 
 attached base packages:
 [1] methods   stats     graphics  grDevices utils     datasets  base     
 
 other attached packages:
-[1] RSQLite_0.11.4 DBI_0.2-7      lme4_1.1-7     Rcpp_0.11.2    Matrix_1.1-4  
-[6] plyr_1.8.1     reshape_0.8.5  optparse_1.2.0
+[1] RSQLite_1.0.0  DBI_0.5-1      lme4_1.1-12    Matrix_1.2-7.1 plyr_1.8.4    
+[6] reshape_0.8.5  optparse_1.3.2
 
 loaded via a namespace (and not attached):
-[1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
-[5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
+[1] minqa_1.2.4     MASS_7.3-45     Rcpp_0.12.7     getopt_1.20.0  
+[5] splines_3.2.3   nlme_3.1-128    grid_3.2.3      nloptr_1.0.4   
+[9] lattice_0.20-34
 
-=> main loop started on Sun Aug 17 04:11:25 2014
+=> main loop started on Thu Sep 22 13:23:26 2016
 
 no more lines in input: terminating...
 
-=> main loop completed on Sun Aug 17 04:11:27 2014
+=> main loop completed on Thu Sep 22 13:23:27 2016
 
-2 regressors processed in 1.136956 secs
- reading input: 0.005768299 secs
- joining data: 0.003540039 secs
- processing: 0.8028104 secs
- filtering output: 0.02066302 secs
- writing output: 0.002486467 secs
- garbage collection: 0.258604 secs
+2 regressors processed in 0.6937516 secs
+ reading input: 0.004905939 secs
+ joining input data: 0.002067327 secs
+ processing: 0.4455893 secs
+ filtering output: 0.01137972 secs
+ writing output: 0.001695633 secs
+ garbage collection: 0.1911323 secs
 analysis completed.

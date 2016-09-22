@@ -79,17 +79,17 @@ loaded via a namespace (and not attached):
 [5] splines_3.2.3   nlme_3.1-128    grid_3.2.3      nloptr_1.0.4   
 [9] lattice_0.20-34
 
-=> main loop started on Thu Sep 22 12:07:40 2016
+=> main loop started on Thu Sep 22 13:23:27 2016
 
 no more lines in input: terminating...
 
-=> main loop completed on Thu Sep 22 12:07:40 2016
+=> main loop completed on Thu Sep 22 13:23:27 2016
 
-2 regressors processed in 0.2824538 secs
- reading input: 0.002655506 secs
- joining input data: 0.001203537 secs
- processing: 0.1207082 secs
- filtering output: 0.006794691 secs
- writing output: 0.0009281635 secs
- garbage collection: 0.1297688 secs
+2 regressors processed in 0.4145308 secs
+ reading input: 0.004084349 secs
+ joining input data: 0.001727104 secs
+ processing: 0.1778536 secs
+ filtering output: 0.007851362 secs
+ writing output: 0.001335621 secs
+ garbage collection: 0.183707 secs
 analysis completed.

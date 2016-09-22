@@ -1,4 +1,4 @@
-List of 12
+List of 13
  $ regressors           : chr "data/genotype.bySample.thin"
  $ outcomes             : chr "data/expression.thin"
  $ intef                : chr "data/intef.tab"
@@ -10,6 +10,7 @@ List of 12
  $ cores                : num 1
  $ max-regressions      : int 10000
  $ regressors-chunk-size: int 1000
+ $ header               : logi FALSE
  $ help                 : logi FALSE
 reading outcomes data...
 done:
@@ -22,37 +23,62 @@ reading interaction effects data...
 done:
 'data.frame':	7 obs. of  2 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ FI1     : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2
+ $ FI1     : chr  "A" "A" "A" "A" ...
 merging covariates data...
 'data.frame':	7 obs. of  2 variables:
  $ sampleID: chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
- $ FI1     : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2
+ $ FI1     : chr  "A" "A" "A" "A" ...
 merging outcomes data...
 'data.frame':	14 obs. of  4 variables:
  $ sampleID  : chr  "subj1-measure1" "subj1-measure2" "subj2-measure1" "subj2-measure2" ...
  $ reporterID: chr  "1007_s_at" "1007_s_at" "1007_s_at" "1007_s_at" ...
  $ expression: num  0.5 2.5 -4 -3 1.1 2.2 3.3 15 25 4 ...
- $ FI1       : Factor w/ 2 levels "A","B": 1 1 1 1 2 2 2 1 1 1 ...
+ $ FI1       : chr  "A" "A" "A" "A" ...
 model formula:
 expression ~ alleleCopyNumber + alleleCopyNumber * FI1
 baseline formula:
 expression ~ alleleCopyNumber + alleleCopyNumber + FI1
 
 checking input data format...
-OK. detected 1 samples:
- chr "subj1-measure1"
+OK. detected 7 samples:
+ chr [1:7] "subj1-measure1" "subj1-measure2" "subj2-measure1" ...
+output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'interactionTerm', 'isCis'
+session info:
+R version 3.2.3 (2015-12-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 16.04.1 LTS
 
-=> main loop started on Sat Aug 16 06:37:58 2014
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=pl_PL.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=pl_PL.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=pl_PL.UTF-8 LC_IDENTIFICATION=C       
+
+attached base packages:
+[1] methods   stats     graphics  grDevices utils     datasets  base     
+
+other attached packages:
+[1] RSQLite_1.0.0  DBI_0.5-1      lme4_1.1-12    Matrix_1.2-7.1 plyr_1.8.4    
+[6] reshape_0.8.5  optparse_1.3.2
+
+loaded via a namespace (and not attached):
+[1] minqa_1.2.4     MASS_7.3-45     Rcpp_0.12.7     getopt_1.20.0  
+[5] splines_3.2.3   nlme_3.1-128    grid_3.2.3      nloptr_1.0.4   
+[9] lattice_0.20-34
+
+=> main loop started on Thu Sep 22 13:23:28 2016
 
 no more lines in input: terminating...
 
-=> main loop completed on Sat Aug 16 06:37:58 2014
+=> main loop completed on Thu Sep 22 13:23:29 2016
 
-2 regressors processed in 0.2640333 secs
- reading input: 0.003611565 secs
- joining data: 0.00201869 secs
- processing: 0.03711009 secs
- filtering output: 0.01333594 secs
- writing output: 0.001569033 secs
- garbage collection: 0.1742096 secs
+2 regressors processed in 0.2867515 secs
+ reading input: 0.004115582 secs
+ joining input data: 0.00188756 secs
+ processing: 0.04339886 secs
+ filtering output: 0.0130055 secs
+ writing output: 0.001903296 secs
+ garbage collection: 0.1842213 secs
 analysis completed.

@@ -1,21 +1,21 @@
 	Command being timed: "./test-002-cis-trans-settings.sh"
-	User time (seconds): 130.35
-	System time (seconds): 0.36
-	Percent of CPU this job got: 100%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:10.69
+	User time (seconds): 49.07
+	System time (seconds): 0.12
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:49.22
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 745600
+	Maximum resident set size (kbytes): 191752
 	Average resident set size (kbytes): 0
 	Major (requiring I/O) page faults: 0
-	Minor (reclaiming a frame) page faults: 70294
-	Voluntary context switches: 53
-	Involuntary context switches: 12303
+	Minor (reclaiming a frame) page faults: 92214
+	Voluntary context switches: 54
+	Involuntary context switches: 109
 	Swaps: 0
-	File system inputs: 16
-	File system outputs: 7664
+	File system inputs: 7522
+	File system outputs: 7636
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0

@@ -13,7 +13,7 @@ opts : List of 7
  $ outcomes  : num 1000
  $ samples   : num 100
  $ fixef     : num 1
- $ output    : chr "/tmp/tmp.DnxnhZnKyK"
+ $ output    : chr "/tmp/tmp.zeD180leZN"
  $ seed      : num 1234
  $ help      : logi FALSE
 outcomesIDs :  chr [1:1000] "outcome1" "outcome2" "outcome3" "outcome4" ...
@@ -44,12 +44,12 @@ chromosomeLength = 2000
 2 regressor2          1     2001
 analysis completed.
 List of 14
- $ regressors           : chr "/tmp/tmp.DnxnhZnKyK/regressors"
- $ outcomes             : chr "/tmp/tmp.DnxnhZnKyK/outcomes"
- $ fixef                : chr "/tmp/tmp.DnxnhZnKyK/fixef"
- $ ranef                : chr "/tmp/tmp.DnxnhZnKyK/ranef"
- $ genespos             : chr "/tmp/tmp.DnxnhZnKyK/genespos.sqlite"
- $ snpspos              : chr "/tmp/tmp.DnxnhZnKyK/snpspos.sqlite"
+ $ regressors           : chr "/tmp/tmp.zeD180leZN/regressors"
+ $ outcomes             : chr "/tmp/tmp.zeD180leZN/outcomes"
+ $ fixef                : chr "/tmp/tmp.zeD180leZN/fixef"
+ $ ranef                : chr "/tmp/tmp.zeD180leZN/ranef"
+ $ genespos             : chr "/tmp/tmp.zeD180leZN/genespos.sqlite"
+ $ snpspos              : chr "/tmp/tmp.zeD180leZN/snpspos.sqlite"
  $ cis-window           : num 5e+05
  $ trans-pvalue         : num 0.001
  $ cis-pvalue           : num 0.1
@@ -94,39 +94,42 @@ OK. detected 100 samples:
  chr [1:100] "sample1" "sample10" "sample100" "sample11" ...
 output columns: 'reporterID', 'regressorID', 'pvalue', 'beta', 't', 'nobs', 'isCis'
 session info:
-R version 3.1.1 Patched (2014-08-16 r66408)
-Platform: x86_64-unknown-linux-gnu (64-bit)
+R version 3.2.3 (2015-12-10)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 16.04.1 LTS
 
 locale:
  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
- [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
- [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [5] LC_MONETARY=pl_PL.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=pl_PL.UTF-8       LC_NAME=C                 
  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
-[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+[11] LC_MEASUREMENT=pl_PL.UTF-8 LC_IDENTIFICATION=C       
 
 attached base packages:
 [1] methods   stats     graphics  grDevices utils     datasets  base     
 
 other attached packages:
-[1] RSQLite_0.11.4 DBI_0.2-7      lme4_1.1-7     Rcpp_0.11.2    Matrix_1.1-4  
-[6] plyr_1.8.1     reshape_0.8.5  optparse_1.2.0
+[1] RSQLite_1.0.0  DBI_0.5-1      lme4_1.1-12    Matrix_1.2-7.1 plyr_1.8.4    
+[6] reshape_0.8.5  optparse_1.3.2
 
 loaded via a namespace (and not attached):
-[1] getopt_1.20.0   grid_3.1.1      lattice_0.20-29 MASS_7.3-33    
-[5] minqa_1.2.3     nlme_3.1-117    nloptr_1.0.4    splines_3.1.1  
+[1] minqa_1.2.4     MASS_7.3-45     Rcpp_0.12.7     getopt_1.20.0  
+[5] splines_3.2.3   nlme_3.1-128    grid_3.2.3      nloptr_1.0.4   
+[9] lattice_0.20-34
 
-=> main loop started on Sun Aug 17 04:08:01 2014
+=> main loop started on Thu Sep 22 13:23:29 2016
 
 no more lines in input: terminating...
+There were 16 warnings (use warnings() to see them)
 
-=> main loop completed on Sun Aug 17 04:10:01 2014
+=> main loop completed on Thu Sep 22 13:24:14 2016
 
-2 regressors processed in 2.009816 mins
- reading input: 0.008020639 secs
- joining data: 1.207256 secs
- processing: 118.737 secs
- filtering output: 0.04945874 secs
- writing output: 0.005675554 secs
- garbage collection: 0.5363052 secs
+2 regressors processed in 44.96901 secs
+ reading input: 0.004655123 secs
+ joining input data: 0.6434662 secs
+ processing: 43.97995 secs
+ filtering output: 0.01351452 secs
+ writing output: 0.003571987 secs
+ garbage collection: 0.2571123 secs
 analysis completed.
